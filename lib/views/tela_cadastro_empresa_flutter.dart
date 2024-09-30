@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
-import 'tela_cadastro_empresa_flutter.dart'; // Importe a tela de cadastro de empresas
+import 'package:flutter/services.dart';
 
-class CadastroReciclagemScreen extends StatefulWidget {
+class CadastroEmpresaScreen extends StatefulWidget {
   @override
-  _CadastroReciclagemScreenState createState() =>
-      _CadastroReciclagemScreenState();
+  _CadastroEmpresaScreenState createState() => _CadastroEmpresaScreenState();
 }
 
-class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
+class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
   final _formKey = GlobalKey<FormState>();
-  String _nome = '';
-  String _email = '';
+  String _nomeSocial = '';
+  String _emailComercial = '';
+  String _cnpj = '';
   String _senha = '';
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      // Lógica para enviar os dados do formulário
-      print('Dados enviados: Nome: $_nome, Email: $_email, Senha: $_senha');
+      // Aqui você pode adicionar a lógica para enviar os dados do formulário
+      print(
+          'Dados enviados: Nome Social: $_nomeSocial, Email Comercial: $_emailComercial, CNPJ: $_cnpj');
     }
   }
 
@@ -48,7 +49,7 @@ class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
                         ),
                       ),
                       child: Icon(
-                        Icons.recycling,
+                        Icons.business,
                         size: 64,
                         color: Colors.white,
                       ),
@@ -61,7 +62,7 @@ class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Cadastre-se para Reciclar',
+                              'Cadastro de Empresa',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -73,37 +74,60 @@ class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
                             TextFormField(
                               decoration: InputDecoration(
                                 prefixIcon:
-                                    Icon(Icons.person, color: Colors.grey),
-                                hintText: 'Nome',
+                                    Icon(Icons.business, color: Colors.grey),
+                                hintText: 'Nome Social da Empresa',
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
                               validator: (value) => value!.isEmpty
-                                  ? 'Por favor, insira seu nome'
+                                  ? 'Por favor, insira o nome social da empresa'
                                   : null,
-                              onSaved: (value) => _nome = value!,
+                              onSaved: (value) => _nomeSocial = value!,
                             ),
                             SizedBox(height: 16),
                             TextFormField(
                               decoration: InputDecoration(
                                 prefixIcon:
                                     Icon(Icons.email, color: Colors.grey),
-                                hintText: 'Email',
+                                hintText: 'Email Comercial',
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
                               validator: (value) {
                                 if (value!.isEmpty)
-                                  return 'Por favor, insira seu email';
+                                  return 'Por favor, insira o email comercial';
                                 if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                                     .hasMatch(value)) {
                                   return 'Por favor, insira um email válido';
                                 }
                                 return null;
                               },
-                              onSaved: (value) => _email = value!,
+                              onSaved: (value) => _emailComercial = value!,
+                            ),
+                            SizedBox(height: 16),
+                            TextFormField(
+                              decoration: InputDecoration(
+                                prefixIcon: Icon(Icons.business_center,
+                                    color: Colors.grey),
+                                hintText: 'CNPJ',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly
+                              ],
+                              validator: (value) {
+                                if (value!.isEmpty)
+                                  return 'Por favor, insira o CNPJ';
+                                if (value.length != 14)
+                                  return 'O CNPJ deve ter 14 dígitos';
+                                return null;
+                              },
+                              onSaved: (value) => _cnpj = value!,
                             ),
                             SizedBox(height: 16),
                             TextFormField(
@@ -123,28 +147,8 @@ class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
                             ),
                             SizedBox(height: 24),
                             ElevatedButton(
-                              child: Text('Cadastrar'),
+                              child: Text('Cadastrar Empresa'),
                               onPressed: _submitForm,
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                textStyle: TextStyle(fontSize: 18),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              icon: Icon(Icons.business),
-                              label: Text('Sou empresa'),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          CadastroEmpresaScreen()),
-                                );
-                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
@@ -157,7 +161,7 @@ class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
                             ),
                             SizedBox(height: 16),
                             Text(
-                              'Junte-se a nós na missão de tornar o mundo mais verde!',
+                              'Junte-se a nós na missão de tornar o mundo mais sustentável!',
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,

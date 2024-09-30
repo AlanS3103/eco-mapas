@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
+import 'tela_cadastro_reciclagem_flutter.dart'; // Importe a tela de cadastro
 import 'tela_cadastro_empresa_flutter.dart'; // Importe a tela de cadastro de empresas
 
-class CadastroReciclagemScreen extends StatefulWidget {
+class LoginScreen extends StatefulWidget {
   @override
-  _CadastroReciclagemScreenState createState() =>
-      _CadastroReciclagemScreenState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  String _nome = '';
   String _email = '';
   String _senha = '';
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      // Lógica para enviar os dados do formulário
-      print('Dados enviados: Nome: $_nome, Email: $_email, Senha: $_senha');
+      // Aqui você pode adicionar a lógica para enviar os dados de login
+      print('Dados de login enviados: Email: $_email, Senha: $_senha');
     }
   }
 
@@ -48,7 +47,7 @@ class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
                         ),
                       ),
                       child: Icon(
-                        Icons.recycling,
+                        Icons.eco,
                         size: 64,
                         color: Colors.white,
                       ),
@@ -61,7 +60,7 @@ class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Cadastre-se para Reciclar',
+                              'Login',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -70,21 +69,6 @@ class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
                               textAlign: TextAlign.center,
                             ),
                             SizedBox(height: 24),
-                            TextFormField(
-                              decoration: InputDecoration(
-                                prefixIcon:
-                                    Icon(Icons.person, color: Colors.grey),
-                                hintText: 'Nome',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              validator: (value) => value!.isEmpty
-                                  ? 'Por favor, insira seu nome'
-                                  : null,
-                              onSaved: (value) => _nome = value!,
-                            ),
-                            SizedBox(height: 16),
                             TextFormField(
                               decoration: InputDecoration(
                                 prefixIcon:
@@ -116,35 +100,15 @@ class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
                                 ),
                               ),
                               obscureText: true,
-                              validator: (value) => value!.length < 6
-                                  ? 'A senha deve ter pelo menos 6 caracteres'
+                              validator: (value) => value!.isEmpty
+                                  ? 'Por favor, insira sua senha'
                                   : null,
                               onSaved: (value) => _senha = value!,
                             ),
                             SizedBox(height: 24),
                             ElevatedButton(
-                              child: Text('Cadastrar'),
+                              child: Text('Entrar'),
                               onPressed: _submitForm,
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                textStyle: TextStyle(fontSize: 18),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              icon: Icon(Icons.business),
-                              label: Text('Sou empresa'),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          CadastroEmpresaScreen()),
-                                );
-                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
@@ -156,8 +120,49 @@ class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
                               ),
                             ),
                             SizedBox(height: 16),
+                            TextButton(
+                              child: Text('Esqueceu a senha?'),
+                              onPressed: () {
+                                // Adicione aqui a lógica para recuperação de senha
+                              },
+                            ),
+                            SizedBox(height: 8), // Reduzido o espaçamento
+                            TextButton(
+                              child: Text(
+                                'Registre-se',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14, // Tamanho da fonte reduzido
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          CadastroReciclagemScreen()),
+                                );
+                              },
+                            ),
+                            SizedBox(height: 8),
+                            TextButton.icon(
+                              icon: Icon(Icons.business, color: Colors.green),
+                              label: Text(
+                                'Cadastrar Empresa',
+                                style: TextStyle(color: Colors.green),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          CadastroEmpresaScreen()),
+                                );
+                              },
+                            ),
+                            SizedBox(height: 16),
                             Text(
-                              'Junte-se a nós na missão de tornar o mundo mais verde!',
+                              'Faça login para continuar sua jornada ecológica!',
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,

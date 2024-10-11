@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'tela_cadastro_reciclagem_flutter.dart'; // Importe a tela de cadastro
+import 'tela_cadastro_pessoa_flutter.dart'; // Importe a tela de cadastro
 import 'tela_cadastro_empresa_flutter.dart'; // Importe a tela de cadastro de empresas
 
 class LoginScreen extends StatefulWidget {
@@ -16,6 +16,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       // Aqui você pode adicionar a lógica para enviar os dados de login
+
+      Navigator.pushReplacementNamed(context, "/tela-principal");
       print('Dados de login enviados: Email: $_email, Senha: $_senha');
     }
   }
@@ -140,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) =>
-                                          CadastroReciclagemScreen()),
+                                          CadastroPessoaScreen()),
                                 );
                               },
                             ),

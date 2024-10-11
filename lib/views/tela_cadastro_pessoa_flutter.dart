@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'tela_cadastro_empresa_flutter.dart'; // Importe a tela de cadastro de empresas
 
-class CadastroReciclagemScreen extends StatefulWidget {
+class CadastroPessoaScreen extends StatefulWidget {
   @override
-  _CadastroReciclagemScreenState createState() =>
-      _CadastroReciclagemScreenState();
+  _CadastroPessoaScreenState createState() => _CadastroPessoaScreenState();
 }
 
-class _CadastroReciclagemScreenState extends State<CadastroReciclagemScreen> {
+class _CadastroPessoaScreenState extends State<CadastroPessoaScreen> {
   final _formKey = GlobalKey<FormState>();
   String _nome = '';
   String _email = '';

@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="eco_mapas"
+        android:label="EcoMapas"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_ecomapa">
         <activity
             android:name=".MainActivity"
             android:exported="true"

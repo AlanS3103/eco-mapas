@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth para autenticação
 import 'tela_cadastro_empresa_flutter.dart'; // Importe a tela de cadastro de empresas
 
 class CadastroPessoaScreen extends StatefulWidget {
@@ -11,12 +12,47 @@ class _CadastroPessoaScreenState extends State<CadastroPessoaScreen> {
   String _nome = '';
   String _email = '';
   String _senha = '';
+  String _confirmSenha = '';
+  bool _isLoading = false;
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      // Lógica para enviar os dados do formulário
-      print('Dados enviados: Nome: $_nome, Email: $_email, Senha: $_senha');
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Registrar o usuário no Firebase
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(email: _email, password: _senha);
+        print('Usuário registrado: ${userCredential.user!.uid}');
+
+        // Exibir mensagem de sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Cadastro realizado com sucesso!')),
+        );
+      } on FirebaseAuthException catch (e) {
+        // Tratar erros de autenticação
+        String message;
+        if (e.code == 'email-already-in-use') {
+          message = 'Este email já está em uso.';
+        } else if (e.code == 'weak-password') {
+          message = 'A senha é muito fraca.';
+        } else {
+          message = 'Erro no cadastro: ${e.message}';
+        }
+
+        // Exibir mensagem de erro
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -120,18 +156,41 @@ class _CadastroPessoaScreenState extends State<CadastroPessoaScreen> {
                                   : null,
                               onSaved: (value) => _senha = value!,
                             ),
+                            // SizedBox(height: 16),
+                            // TextFormField(
+                            //   decoration: InputDecoration(
+                            //     prefixIcon:
+                            //         Icon(Icons.lock, color: Colors.grey),
+                            //     hintText: 'Confirmar senha',
+                            //     border: OutlineInputBorder(
+                            //       borderRadius: BorderRadius.circular(8),
+                            //     ),
+                            //   ),
+                            //   obscureText: true,
+                            //   validator: (value) {
+                            //     if (value!.isEmpty)
+                            //       return 'Por favor, confirme sua senha';
+                            //     if (value != _senha)
+                            //       return 'As senhas não coincidem';
+                            //     return null;
+                            //   },
+                            //   onSaved: (value) => _confirmSenha = value!,
+                            // ),
                             SizedBox(height: 24),
-                            ElevatedButton(
-                              child: Text('Cadastrar'),
-                              onPressed: _submitForm,
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                textStyle: TextStyle(fontSize: 18),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
+                            _isLoading
+                                ? CircularProgressIndicator()
+                                : ElevatedButton(
+                                    child: Text('Cadastrar'),
+                                    onPressed: _submitForm,
+                                    style: ElevatedButton.styleFrom(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 16),
+                                      textStyle: TextStyle(fontSize: 18),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
                             SizedBox(height: 16),
                             ElevatedButton.icon(
                               icon: Icon(Icons.business),

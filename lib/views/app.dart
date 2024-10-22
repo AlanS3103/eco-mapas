@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_const_constructors, use_key_in_widget_constructors
 
+import 'package:eco_mapas/views/tela_configuracoes_flutter.dart';
 import 'package:flutter/material.dart';
 import 'tela_cadastro_pessoa_flutter.dart';
 import 'tela_login_reciclagem_flutter.dart';
@@ -16,8 +17,9 @@ class EcoMapasApp extends StatelessWidget {
         "/cadastro": (context) => CadastroPessoaScreen(),
         "/cadastro-empresa": (context) => CadastroEmpresaScreen(),
         "/tela-principal": (context) => PrincipalScreen(),
+        "/configuracoes": (context) => TelaConfiguracoes(),
       },
-      initialRoute: "/tela-principal",
+      initialRoute: "/login",
     );
   }
 }

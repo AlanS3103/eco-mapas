@@ -1,3 +1,5 @@
+import 'package:eco_mapas/firebase_auth_implementation/firebase_auth_services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'tela_cadastro_pessoa_flutter.dart'; // Importe a tela de cadastro
 import 'tela_cadastro_empresa_flutter.dart'; // Importe a tela de cadastro de empresas
@@ -16,10 +18,22 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       // Aqui você pode adicionar a lógica para enviar os dados de login
-
+      _signIn();
       Navigator.pushReplacementNamed(context, "/tela-principal");
       print('Dados de login enviados: Email: $_email, Senha: $_senha');
     }
+  }
+
+  final FirebaseAuthServices _auth = FirebaseAuthServices();
+
+  TextEditingController _emailController = TextEditingController();
+  TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -72,6 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             SizedBox(height: 24),
                             TextFormField(
+                              controller: _emailController,
                               decoration: InputDecoration(
                                 prefixIcon:
                                     Icon(Icons.email, color: Colors.grey),
@@ -93,6 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             SizedBox(height: 16),
                             TextFormField(
+                              controller: _passwordController,
                               decoration: InputDecoration(
                                 prefixIcon:
                                     Icon(Icons.lock, color: Colors.grey),
@@ -183,5 +199,19 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  void _signIn() async {
+    String email = _emailController.text;
+    String password = _passwordController.text;
+
+    User? user = await _auth.signInWithEmailAndPassword(email, password);
+
+    if (user != null) {
+      print("User is successfully created");
+      Navigator.pushReplacementNamed(context, "/tela-principal");
+    } else {
+      print("Erro!");
+    }
   }
 }

@@ -1,3 +1,5 @@
+import 'package:eco_mapas/firebase_auth_implementation/firebase_auth_services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -16,10 +18,29 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      _signUp();
       // Aqui você pode adicionar a lógica para enviar os dados do formulário
       print(
           'Dados enviados: Nome Social: $_nomeSocial, Email Comercial: $_emailComercial, CNPJ: $_cnpj');
     }
+  }
+
+  final FirebaseAuthServices _auth = FirebaseAuthServices();
+
+  TextEditingController _socialnameController = TextEditingController();
+  TextEditingController _emailController = TextEditingController();
+  TextEditingController _cnpjController = TextEditingController();
+  TextEditingController _usernameController = TextEditingController();
+  TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    _cnpjController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -72,6 +93,7 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
                             ),
                             SizedBox(height: 24),
                             TextFormField(
+                              controller: _socialnameController,
                               decoration: InputDecoration(
                                 prefixIcon:
                                     Icon(Icons.business, color: Colors.grey),
@@ -87,6 +109,7 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
                             ),
                             SizedBox(height: 16),
                             TextFormField(
+                              controller: _emailController,
                               decoration: InputDecoration(
                                 prefixIcon:
                                     Icon(Icons.email, color: Colors.grey),
@@ -108,6 +131,7 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
                             ),
                             SizedBox(height: 16),
                             TextFormField(
+                              controller: _cnpjController,
                               decoration: InputDecoration(
                                 prefixIcon: Icon(Icons.business_center,
                                     color: Colors.grey),
@@ -131,6 +155,7 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
                             ),
                             SizedBox(height: 16),
                             TextFormField(
+                              controller: _passwordController,
                               decoration: InputDecoration(
                                 prefixIcon:
                                     Icon(Icons.lock, color: Colors.grey),
@@ -145,6 +170,22 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
                                   : null,
                               onSaved: (value) => _senha = value!,
                             ),
+                            // SizedBox(height: 16),
+                            // TextFormField(
+                            //   decoration: InputDecoration(
+                            //     prefixIcon:
+                            //         Icon(Icons.lock, color: Colors.grey),
+                            //     hintText: 'Confirmar senha',
+                            //     border: OutlineInputBorder(
+                            //       borderRadius: BorderRadius.circular(8),
+                            //     ),
+                            //   ),
+                            //   obscureText: true,
+                            //   validator: (value) => value!.length < 6
+                            //       ? 'A senha deve ter pelo menos 6 caracteres'
+                            //       : null,
+                            //   onSaved: (value) => _senha = value!,
+                            // ),
                             SizedBox(height: 24),
                             ElevatedButton(
                               child: Text('Cadastrar Empresa'),
@@ -180,5 +221,21 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
         ),
       ),
     );
+  }
+
+  void _signUp() async {
+    String socialname = _socialnameController.text;
+    String email = _emailController.text;
+    String cnpj = _cnpjController.text;
+    String password = _passwordController.text;
+
+    User? user = await _auth.signUpWithEmailAndPassword(email, password);
+
+    if (user != null) {
+      print("User is successfully created");
+      Navigator.pushReplacementNamed(context, "/tela-principal");
+    } else {
+      print("Erro!");
+    }
   }
 }

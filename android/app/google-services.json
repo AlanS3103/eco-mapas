@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "242404470061",
+    "project_id": "ecomapas-d8d19",
+    "storage_bucket": "ecomapas-d8d19.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:242404470061:android:c923b814f9611a0673f7a4",
+        "android_client_info": {
+          "package_name": "com.eco_mapa.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDB-W_6xMuzabokiAPN1bkMLAi69PIXQZ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:242404470061:android:433349e0d3a4ed8b73f7a4",
+        "android_client_info": {
+          "package_name": "com.example.eco_mapas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDB-W_6xMuzabokiAPN1bkMLAi69PIXQZ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

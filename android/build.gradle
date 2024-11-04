@@ -1,11 +1,18 @@
-allprojects {
+buildscript {
     repositories {
         google()
         mavenCentral()
     }
-
     dependencies {
-        classpath 'com.google.gms.google-services: 4.4.2' 
+        classpath 'com.android.tools.build:gradle:8.0.0' // Inclua a versão do Gradle aqui
+        classpath 'com.google.gms:google-services:4.4.2' // Inclua o Google Services aqui
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
     }
 }
 

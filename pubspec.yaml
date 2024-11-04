@@ -38,6 +38,8 @@ dependencies:
   firebase_core: 
   firebase_auth: 
   cloud_firestore:
+  latlong2: ^0.9.1
+  flutter_map: ^7.0.2
 
 dev_dependencies:
   flutter_test:

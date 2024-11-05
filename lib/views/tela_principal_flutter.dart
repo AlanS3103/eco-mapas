@@ -17,11 +17,23 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   // Coordenadas de São José do Rio Preto
   final LatLng initialPosition = LatLng(-20.819724, -49.379852);
   late List<CollectionPoint> collectionPoints;
+  late CollectionPointsService _collectionPointsService; // Crie uma instância
+  bool _isLoading = true; // Adicione um indicador de carregamento
 
   @override
   void initState() {
     super.initState();
-    collectionPoints = CollectionPointsService.getCollectionPoints();
+    _collectionPointsService =
+        CollectionPointsService(); // Inicialize a instância
+    _loadCollectionPoints(); // Chama o método para carregar os pontos
+  }
+
+  Future<void> _loadCollectionPoints() async {
+    collectionPoints = await _collectionPointsService
+        .getCollectionPoints(); // Chame o método na instância
+    setState(() {
+      _isLoading = false; // Desabilita o indicador de carregamento
+    }); // Atualiza o estado para redesenhar a tela
   }
 
   @override
@@ -29,7 +41,13 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     return Scaffold(
       appBar: _buildAppBar(),
       drawer: _buildDrawer(),
-      body: FlutterMap(
+      body:
+          // _isLoading
+          // ? Center(
+          //     child:
+          //         CircularProgressIndicator()) // Exibe o indicador de carregamento
+          // :
+          FlutterMap(
         mapController: mapController,
         options: const MapOptions(
           initialCenter: LatLng(-20.819724, -49.379852),

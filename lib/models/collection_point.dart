@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
 
 class CollectionPoint {
@@ -22,4 +23,20 @@ class CollectionPoint {
     required this.imageUrl,
     required this.materialTypes,
   });
+
+  factory CollectionPoint.fromFirestore(DocumentSnapshot snapshot) {
+    Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+    return CollectionPoint(
+      id: data['id'],
+      name: data['name'],
+      description: data['description'],
+      address: data['address'],
+      ownerName: data['ownerName'],
+      rating: data['rating'],
+      location:
+          LatLng(data['location']['latitude'], data['location']['longitude']),
+      imageUrl: data['imageUrl'],
+      materialTypes: List<String>.from(data['materialTypes']),
+    );
+  }
 }

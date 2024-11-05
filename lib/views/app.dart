@@ -1,11 +1,12 @@
 // ignore_for_file: prefer_const_constructors, use_key_in_widget_constructors
 
-import 'package:eco_mapas/views/tela_configuracoes_flutter.dart';
 import 'package:flutter/material.dart';
-import 'tela_cadastro_pessoa_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'tela_login_reciclagem_flutter.dart';
-import 'tela_cadastro_empresa_flutter.dart';
 import 'tela_principal_flutter.dart';
+import 'tela_cadastro_pessoa_flutter.dart';
+import 'tela_cadastro_empresa_flutter.dart';
+import 'tela_configuracoes_flutter.dart';
 
 class EcoMapasApp extends StatelessWidget {
   @override
@@ -19,7 +20,16 @@ class EcoMapasApp extends StatelessWidget {
         "/tela-principal": (context) => PrincipalScreen(),
         "/configuracoes": (context) => TelaConfiguracoes(),
       },
-      initialRoute: "/login",
+      home: StreamBuilder(
+          stream: FirebaseAuth.instance.authStateChanges(),
+          builder: (context, AsyncSnapshot<User?> snapshot) {
+            if (snapshot.connectionState == ConnectionState.active) {
+              return snapshot.data == null ? LoginScreen() : PrincipalScreen();
+            } else {
+              return LoginScreen();
+            }
+          }),
+      // initialRoute: "/tela-principal",
     );
   }
 }

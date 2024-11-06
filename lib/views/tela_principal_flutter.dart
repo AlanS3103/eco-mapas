@@ -16,7 +16,8 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   final MapController mapController = MapController();
   // Coordenadas de São José do Rio Preto
   final LatLng initialPosition = LatLng(-20.819724, -49.379852);
-  late List<CollectionPoint> collectionPoints;
+  late List<CollectionPoint> collectionPoints =
+      []; // Inicialize com uma lista vazia
   late CollectionPointsService _collectionPointsService; // Crie uma instância
   bool _isLoading = true; // Adicione um indicador de carregamento
 
@@ -29,11 +30,19 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   }
 
   Future<void> _loadCollectionPoints() async {
-    collectionPoints = await _collectionPointsService
-        .getCollectionPoints(); // Chame o método na instância
+    try {
+      collectionPoints = await _collectionPointsService.getCollectionPoints();
+      if (collectionPoints.isEmpty) {
+        print('Nenhum ponto de coleta encontrado.');
+      } else {
+        print('Pontos de coleta carregados: ${collectionPoints.length}');
+      }
+    } catch (e) {
+      print('Erro ao carregar pontos de coleta: $e');
+    }
     setState(() {
-      _isLoading = false; // Desabilita o indicador de carregamento
-    }); // Atualiza o estado para redesenhar a tela
+      _isLoading = false; // Atualize o estado de carregamento
+    });
   }
 
   @override
@@ -41,31 +50,32 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     return Scaffold(
       appBar: _buildAppBar(),
       drawer: _buildDrawer(),
-      body:
-          // _isLoading
-          // ? Center(
-          //     child:
-          //         CircularProgressIndicator()) // Exibe o indicador de carregamento
-          // :
-          FlutterMap(
-        mapController: mapController,
-        options: const MapOptions(
-          initialCenter: LatLng(-20.819724, -49.379852),
-          initialZoom: 13.0,
-          minZoom: 3.0,
-          maxZoom: 18.0,
-        ),
-        children: [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: 'com.example.eco_mapas',
-          ),
-          MarkerLayer(
-            markers:
-                _buildMarkers(), // Chama o método para construir marcadores
-          ),
-        ],
-      ),
+      body: _isLoading
+          ? Center(
+              child:
+                  CircularProgressIndicator()) // Exibe o indicador de carregamento
+          : FlutterMap(
+              mapController: mapController,
+              options: MapOptions(
+                initialCenter: LatLng(-20.819724, -49.379852),
+                initialZoom: 13.0,
+                minZoom: 3.0,
+                maxZoom: 18.0,
+                onLongPress: (tapPosition, point) {
+                  _showAddPointModal(point);
+                },
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.eco_mapas',
+                ),
+                MarkerLayer(
+                  markers:
+                      _buildMarkers(), // Chama o método para construir marcadores
+                ),
+              ],
+            ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -78,7 +88,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
           ),
           const SizedBox(height: 16),
           FloatingActionButton(
-            onPressed: _showAddPointModal,
+            onPressed: () => _showAddPointModal(initialPosition),
             child: const Icon(Icons.add_location),
             heroTag: 'add',
           ),
@@ -87,18 +97,25 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     );
   }
 
-  void addNewPoint(CollectionPoint newPoint) {
-    setState(() {
-      collectionPoints.add(newPoint);
-    });
+  void addNewPoint(CollectionPoint newPoint) async {
+    try {
+      await _collectionPointsService.addCollectionPoint(newPoint);
+      setState(() {
+        collectionPoints.add(newPoint);
+      });
+    } catch (e) {
+      print('Erro ao adicionar ponto de coleta: $e');
+    }
   }
 
-  void _showAddPointModal() {
+  void _showAddPointModal(LatLng initialLocation) {
     String name = '';
     String address = '';
     String description = '';
     List<String> materialTypes = [];
     String ownerName = '';
+    String imageUrl = '';
+    LatLng location = initialLocation; // Use a localização inicial fornecida
 
     showModalBottomSheet(
       context: context,
@@ -106,56 +123,65 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            return Container(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  TextField(
-                    decoration: InputDecoration(labelText: 'Nome'),
-                    onChanged: (value) => name = value,
-                  ),
-                  TextField(
-                    decoration: InputDecoration(labelText: 'Endereço'),
-                    onChanged: (value) => address = value,
-                  ),
-                  TextField(
-                    decoration: InputDecoration(labelText: 'Descrição'),
-                    onChanged: (value) => description = value,
-                  ),
-                  TextField(
-                    decoration: InputDecoration(
-                        labelText: 'Tipos de Material (separados por vírgula)'),
-                    onChanged: (value) => materialTypes =
-                        value.split(',').map((e) => e.trim()).toList(),
-                  ),
-                  TextField(
-                    decoration:
-                        InputDecoration(labelText: 'Nome do Proprietário'),
-                    onChanged: (value) => ownerName = value,
-                  ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    child: Text('Adicionar Ponto'),
-                    onPressed: () {
-                      addNewPoint(CollectionPoint(
-                        id: (collectionPoints.length + 1).toString(),
-                        name: name,
-                        description: description,
-                        address: address,
-                        ownerName: ownerName,
-                        rating: 0, // Inicialmente sem avaliação
-                        location: LatLng(-20.793531793190986,
-                            -49.39986266970867), // Você pode ajustar isso para uma localização específica ou usar a localização atual
-                        imageUrl:
-                            'https://example.com/placeholder.jpg', // Placeholder, você pode implementar upload de imagem posteriormente
-                        materialTypes: materialTypes,
-                      ));
-                      // Fechar o modal
-                      Navigator.pop(context);
-                    },
-                  ),
-                ],
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    TextField(
+                      decoration: InputDecoration(labelText: 'Nome'),
+                      onChanged: (value) => name = value,
+                    ),
+                    TextField(
+                      decoration: InputDecoration(labelText: 'Endereço'),
+                      onChanged: (value) => address = value,
+                    ),
+                    TextField(
+                      decoration: InputDecoration(labelText: 'Descrição'),
+                      onChanged: (value) => description = value,
+                    ),
+                    TextField(
+                      decoration: InputDecoration(
+                          labelText:
+                              'Tipos de Material (separados por vírgula)'),
+                      onChanged: (value) => materialTypes =
+                          value.split(',').map((e) => e.trim()).toList(),
+                    ),
+                    TextField(
+                      decoration:
+                          InputDecoration(labelText: 'Nome do Proprietário'),
+                      onChanged: (value) => ownerName = value,
+                    ),
+                    TextField(
+                      decoration: InputDecoration(labelText: 'URL da Imagem'),
+                      onChanged: (value) => imageUrl = value,
+                    ),
+                    SizedBox(height: 20),
+                    ElevatedButton(
+                      child: Text('Adicionar Ponto'),
+                      onPressed: () {
+                        addNewPoint(CollectionPoint(
+                          id: (collectionPoints.length + 1).toString(),
+                          name: name,
+                          description: description,
+                          address: address,
+                          ownerName: ownerName,
+                          rating: 0, // Inicialmente sem avaliação
+                          location: location, // Use a localização selecionada
+                          imageUrl: imageUrl.isNotEmpty
+                              ? imageUrl
+                              : 'https://example.com/placeholder.jpg', // Placeholder
+                          materialTypes: materialTypes,
+                        ));
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
               ),
             );
           },

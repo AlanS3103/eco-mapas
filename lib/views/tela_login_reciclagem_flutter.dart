@@ -11,29 +11,48 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  String _email = '';
-  String _senha = '';
-
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      // Aqui você pode adicionar a lógica para enviar os dados de login
-      _signIn();
-      Navigator.pushReplacementNamed(context, "/tela-principal");
-      print('Dados de login enviados: Email: $_email, Senha: $_senha');
-    }
-  }
-
-  final FirebaseAuthServices _auth = FirebaseAuthServices();
-
+  final FirebaseAuthServices _authService = FirebaseAuthServices();
   TextEditingController _emailController = TextEditingController();
   TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      setState(() {
+        _isLoading = true;
+      });
+      try {
+        User? user = await _authService.signInWithEmailAndPassword(
+          _emailController.text,
+          _passwordController.text,
+        );
+        if (user != null && mounted) {
+          Navigator.pushReplacementNamed(context, "/tela-principal");
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao fazer login')),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro: $e')),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
   }
 
   @override
@@ -88,55 +107,51 @@ class _LoginScreenState extends State<LoginScreen> {
                             TextFormField(
                               controller: _emailController,
                               decoration: InputDecoration(
-                                prefixIcon:
-                                    Icon(Icons.email, color: Colors.grey),
+                                prefixIcon: Icon(Icons.email, color: Colors.grey),
                                 hintText: 'Email',
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
                               validator: (value) {
-                                if (value!.isEmpty)
-                                  return 'Por favor, insira seu email';
-                                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                    .hasMatch(value)) {
+                                if (value!.isEmpty) return 'Por favor, insira seu email';
+                                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                                   return 'Por favor, insira um email válido';
                                 }
                                 return null;
                               },
-                              onSaved: (value) => _email = value!,
+                              onSaved: (value) => _emailController.text = value!,
                             ),
                             SizedBox(height: 16),
                             TextFormField(
                               controller: _passwordController,
                               decoration: InputDecoration(
-                                prefixIcon:
-                                    Icon(Icons.lock, color: Colors.grey),
+                                prefixIcon: Icon(Icons.lock, color: Colors.grey),
                                 hintText: 'Senha',
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
                               obscureText: true,
-                              validator: (value) => value!.isEmpty
-                                  ? 'Por favor, insira sua senha'
-                                  : null,
-                              onSaved: (value) => _senha = value!,
+                              validator: (value) => value!.isEmpty ? 'Por favor, insira sua senha' : null,
+                              onSaved: (value) => _passwordController.text = value!,
                             ),
                             SizedBox(height: 24),
-                            ElevatedButton(
-                              child: Text('Entrar'),
-                              onPressed: _submitForm,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                textStyle: TextStyle(fontSize: 18),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
+                            _isLoading
+                                ? Center(child: CircularProgressIndicator())
+                                : ElevatedButton(
+                                    child: Text('Entrar'),
+                                    onPressed: _submitForm,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(vertical: 16),
+                                      textStyle: TextStyle(fontSize: 18),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
                             SizedBox(height: 16),
                             TextButton(
                               child: Text('Esqueceu a senha?'),
@@ -201,17 +216,17 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _signIn() async {
-    String email = _emailController.text;
-    String password = _passwordController.text;
+  // void _signIn() async {
+  //   String email = _emailController.text;
+  //   String password = _passwordController.text;
 
-    User? user = await _auth.signInWithEmailAndPassword(email, password);
+  //   User? user = await _auth.signInWithEmailAndPassword(email, password);
 
-    if (user != null) {
-      print("User is successfully created");
-      Navigator.pushReplacementNamed(context, "/tela-principal");
-    } else {
-      print("Erro!");
-    }
-  }
+  //   if (user != null) {
+  //     print("User is successfully logged in!");
+  //     Navigator.pushReplacementNamed(context, "/tela-principal");
+  //   } else {
+  //     print("Erro!");
+  //   }
+  // }
 }

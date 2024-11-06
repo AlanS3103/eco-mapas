@@ -11,4 +11,18 @@ class CollectionPointsService {
         .map((doc) => CollectionPoint.fromFirestore(doc))
         .toList();
   }
+
+  Future<void> addCollectionPoint(CollectionPoint point) async {
+    await _firestore.collection('collectionPoints').add({
+      'id': point.id,
+      'name': point.name,
+      'description': point.description,
+      'address': point.address,
+      'ownerName': point.ownerName,
+      'rating': point.rating,
+      'location': GeoPoint(point.location.latitude, point.location.longitude),
+      'imageUrl': point.imageUrl,
+      'materialTypes': point.materialTypes,
+    });
+  }
 }

@@ -33,6 +33,7 @@ class _CadastroPessoaScreenState extends State<CadastroPessoaScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Cadastro realizado com sucesso!')),
         );
+        Navigator.pushReplacementNamed(context, "/tela-principal");
       } on FirebaseAuthException catch (e) {
         // Tratar erros de autenticação
         String message;

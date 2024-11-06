@@ -29,6 +29,12 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     _loadCollectionPoints(); // Chama o método para carregar os pontos
   }
 
+  @override
+  void dispose() {
+    mapController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadCollectionPoints() async {
     try {
       collectionPoints = await _collectionPointsService.getCollectionPoints();
@@ -307,8 +313,9 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
               topRight: Radius.circular(20),
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
+            // Use um ListView em vez de um Column
+            padding: const EdgeInsets.all(16.0),
             children: [
               Container(
                 height: 200,

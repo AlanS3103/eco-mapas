@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/collection_point.dart';
 import '../services/collection_points_service.dart';
-import '../widgets/custom_map_marker.dart';
+// import '../widgets/custom_map_marker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class PrincipalScreen extends StatefulWidget {
   const PrincipalScreen({super.key});
@@ -20,6 +24,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
       []; // Inicialize com uma lista vazia
   late CollectionPointsService _collectionPointsService; // Crie uma instância
   bool _isLoading = true; // Adicione um indicador de carregamento
+  String imageUrl = ''; // Adicione a variável imageUrl
 
   @override
   void initState() {
@@ -46,9 +51,63 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     } catch (e) {
       print('Erro ao carregar pontos de coleta: $e');
     }
+    if (mounted) {
+      setState(() {
+        _isLoading = false; // Atualize o estado de carregamento
+      });
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      await _uploadImage(File(pickedFile.path));
+    } else {
+      print('Nenhuma imagem selecionada.');
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+
+    if (pickedFile != null) {
+      _uploadImage(File(pickedFile.path));
+    }
+  }
+
+  Future<String?> _uploadImage(File image) async {
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('imgCollectionPoint/${DateTime.now().toIso8601String()}');
+      final uploadTask = storageRef.putFile(image);
+      final snapshot = await uploadTask.whenComplete(() => {});
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      return downloadUrl;
+    } on FirebaseException catch (e) {
+      if (e.code == 'object-not-found') {
+        print('Erro: Objeto não encontrado.');
+      } else if (e.code == 'unauthorized') {
+        print('Erro: Não autorizado.');
+      } else if (e.code == 'cancelled') {
+        print('Erro: Upload cancelado.');
+      } else {
+        print('Erro desconhecido: $e');
+      }
+    } catch (e) {
+      print('Erro ao fazer upload da imagem: $e');
+    }
+    return null;
+  }
+
+  Future<void> _refreshMap() async {
     setState(() {
-      _isLoading = false; // Atualize o estado de carregamento
+      _isLoading = true;
     });
+    await _loadCollectionPoints();
   }
 
   @override
@@ -86,6 +145,12 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
+            onPressed: _refreshMap,
+            child: const Icon(Icons.refresh),
+            heroTag: 'refresh',
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
             onPressed: () {
               mapController.move(initialPosition, 13.0);
             },
@@ -121,7 +186,8 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     List<String> materialTypes = [];
     String ownerName = '';
     String imageUrl = '';
-    LatLng location = initialLocation; // Use a localização inicial fornecida
+    LatLng location = initialLocation;
+    File? selectedImage;
 
     showModalBottomSheet(
       context: context,
@@ -162,25 +228,53 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                           InputDecoration(labelText: 'Nome do Proprietário'),
                       onChanged: (value) => ownerName = value,
                     ),
-                    TextField(
-                      decoration: InputDecoration(labelText: 'URL da Imagem'),
-                      onChanged: (value) => imageUrl = value,
+                    Row(
+                      children: [
+                        ElevatedButton(
+                          onPressed: () async {
+                            final picker = ImagePicker();
+                            final pickedFile = await picker.pickImage(
+                                source: ImageSource.gallery);
+                            if (pickedFile != null) {
+                              setState(() {
+                                selectedImage = File(pickedFile.path);
+                              });
+                            }
+                          },
+                          child: Text('Selecionar da Galeria'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            final picker = ImagePicker();
+                            final pickedFile = await picker.pickImage(
+                                source: ImageSource.camera);
+                            if (pickedFile != null) {
+                              setState(() {
+                                selectedImage = File(pickedFile.path);
+                              });
+                            }
+                          },
+                          child: Text('Tirar Foto'),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 20),
                     ElevatedButton(
                       child: Text('Adicionar Ponto'),
-                      onPressed: () {
+                      onPressed: () async {
+                        if (selectedImage != null) {
+                          imageUrl = await _uploadImage(selectedImage!) ?? '';
+                        }
                         addNewPoint(CollectionPoint(
                           id: (collectionPoints.length + 1).toString(),
                           name: name,
                           description: description,
                           address: address,
                           ownerName: ownerName,
-                          rating: 0, // Inicialmente sem avaliação
-                          location: location, // Use a localização selecionada
+                          rating: 0,
+                          location: location,
                           imageUrl: imageUrl.isNotEmpty
                               ? imageUrl
-                              : 'https://example.com/placeholder.jpg', // Placeholder
+                              : 'https://example.com/placeholder.jpg',
                           materialTypes: materialTypes,
                         ));
                         Navigator.pop(context);

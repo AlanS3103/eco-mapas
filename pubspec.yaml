@@ -42,6 +42,8 @@ dependencies:
   latlong2: ^0.9.1
   flutter_map: ^7.0.2
   cloud_firestore: ^5.4.5
+  shared_preferences: ^2.0.15
+  flutter_cache_manager: ^3.3.0
 
 dev_dependencies:
   flutter_test:

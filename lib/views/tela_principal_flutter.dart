@@ -3,14 +3,19 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../firebase_auth_implementation/firebase_auth_services.dart';
 import '../models/collection_point.dart';
 import '../services/collection_points_service.dart';
 // import '../widgets/custom_map_marker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'tela_perfil_flutter.dart';
+
 
 class PrincipalScreen extends StatefulWidget {
-  const PrincipalScreen({super.key});
+  final String userType;
+
+  const PrincipalScreen({super.key, required this.userType});
 
   @override
   State<PrincipalScreen> createState() => _PrincipalScreenState();
@@ -18,13 +23,13 @@ class PrincipalScreen extends StatefulWidget {
 
 class _PrincipalScreenState extends State<PrincipalScreen> {
   final MapController mapController = MapController();
-  // Coordenadas de São José do Rio Preto
+  final TextEditingController _searchController = TextEditingController();
   final LatLng initialPosition = LatLng(-20.819724, -49.379852);
-  late List<CollectionPoint> collectionPoints =
-      []; // Inicialize com uma lista vazia
-  late CollectionPointsService _collectionPointsService; // Crie uma instância
-  bool _isLoading = true; // Adicione um indicador de carregamento
-  String imageUrl = ''; // Adicione a variável imageUrl
+  late List<CollectionPoint> collectionPoints = [];
+  late CollectionPointsService _collectionPointsService;
+  bool _isLoading = true;
+  bool _isAddingPoint = false;
+  String imageUrl = ''; 
 
   @override
   void initState() {
@@ -37,6 +42,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   @override
   void dispose() {
     mapController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -54,6 +60,27 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     if (mounted) {
       setState(() {
         _isLoading = false; // Atualize o estado de carregamento
+      });
+    }
+  }
+
+  Future<void> _searchCollectionPoints(String query) async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      collectionPoints = await _collectionPointsService.searchCollectionPointsByName(query);
+      if (collectionPoints.isEmpty) {
+        print('Nenhum ponto de coleta encontrado.');
+      } else {
+        print('Pontos de coleta carregados: ${collectionPoints.length}');
+      }
+    } catch (e) {
+      print('Erro ao carregar pontos de coleta: $e');
+    }
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
       });
     }
   }
@@ -126,9 +153,9 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                 initialZoom: 13.0,
                 minZoom: 3.0,
                 maxZoom: 18.0,
-                onLongPress: (tapPosition, point) {
+                onLongPress: widget.userType == 'empresa' ? (tapPosition, point) {
                   _showAddPointModal(point);
-                },
+                } : null,
               ),
               children: [
                 TileLayer(
@@ -156,12 +183,6 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
             },
             child: const Icon(Icons.center_focus_strong),
             heroTag: 'center',
-          ),
-          const SizedBox(height: 16),
-          FloatingActionButton(
-            onPressed: () => _showAddPointModal(initialPosition),
-            child: const Icon(Icons.add_location),
-            heroTag: 'add',
           ),
         ],
       ),
@@ -258,28 +279,36 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                         ),
                       ],
                     ),
-                    ElevatedButton(
-                      child: Text('Adicionar Ponto'),
-                      onPressed: () async {
-                        if (selectedImage != null) {
-                          imageUrl = await _uploadImage(selectedImage!) ?? '';
-                        }
-                        addNewPoint(CollectionPoint(
-                          id: (collectionPoints.length + 1).toString(),
-                          name: name,
-                          description: description,
-                          address: address,
-                          ownerName: ownerName,
-                          rating: 0,
-                          location: location,
-                          imageUrl: imageUrl.isNotEmpty
-                              ? imageUrl
-                              : 'https://example.com/placeholder.jpg',
-                          materialTypes: materialTypes,
-                        ));
-                        Navigator.pop(context);
-                      },
-                    ),
+                    _isAddingPoint
+                        ? CircularProgressIndicator()
+                        : ElevatedButton(
+                            child: Text('Adicionar Ponto'),
+                            onPressed: () async {
+                              setState(() {
+                                _isAddingPoint = true;
+                              });
+                              if (selectedImage != null) {
+                                imageUrl = await _uploadImage(selectedImage!) ?? '';
+                              }
+                              addNewPoint(CollectionPoint(
+                                id: (collectionPoints.length + 1).toString(),
+                                name: name,
+                                description: description,
+                                address: address,
+                                ownerName: ownerName,
+                                rating: 0,
+                                location: location,
+                                imageUrl: imageUrl.isNotEmpty
+                                    ? imageUrl
+                                    : 'https://example.com/placeholder.jpg',
+                                materialTypes: materialTypes,
+                              ));
+                              setState(() {
+                                _isAddingPoint = false;
+                              });
+                              Navigator.pop(context);
+                            },
+                          ),
                   ],
                 ),
               ),
@@ -298,6 +327,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
         ),
       ),
       title: TextField(
+        controller: _searchController,
         style: const TextStyle(color: Colors.white),
         cursorColor: Colors.white,
         decoration: const InputDecoration(
@@ -306,7 +336,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
           border: InputBorder.none,
         ),
         onChanged: (value) {
-          // Implementar busca
+          _searchCollectionPoints(value);
         },
       ),
     );
@@ -332,7 +362,12 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
           ListTile(
             leading: Icon(Icons.person),
             title: const Text('Perfil'),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => TelaPerfil(userType: widget.userType)),
+              );
+            },
           ),
           ListTile(
             leading: Icon(Icons.settings),
@@ -344,7 +379,9 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
           ListTile(
             leading: Icon(Icons.help_outline),
             title: const Text('Ajuda'),
-            onTap: () {},
+            onTap: () {
+              Navigator.pushNamed(context, "/ajuda");
+            },
           ),
           Divider(),
           ListTile(
@@ -355,7 +392,8 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                 color: Colors.red,
               ),
             ),
-            onTap: () {
+            onTap: () async {
+              await FirebaseAuthServices().signOut();
               Navigator.pushReplacementNamed(context, "/login");
             },
           ),

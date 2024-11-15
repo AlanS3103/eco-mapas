@@ -25,4 +25,15 @@ class CollectionPointsService {
       'materialTypes': point.materialTypes,
     });
   }
+
+  Future<List<CollectionPoint>> searchCollectionPointsByName(String name) async {
+    QuerySnapshot snapshot = await _firestore
+        .collection('collectionPoints')
+        .where('name', isGreaterThanOrEqualTo: name)
+        .where('name', isLessThanOrEqualTo: name + '\uf8ff')
+        .get();
+    return snapshot.docs
+        .map((doc) => CollectionPoint.fromFirestore(doc))
+        .toList();
+  }
 }

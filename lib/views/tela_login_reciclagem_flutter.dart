@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eco_mapas/firebase_auth_implementation/firebase_auth_services.dart';
+import 'package:eco_mapas/views/tela_principal_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'tela_cadastro_pessoa_flutter.dart'; // Importe a tela de cadastro
@@ -15,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController _emailController = TextEditingController();
   TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+  String? _userType;
 
   @override
   void dispose() {
@@ -35,16 +38,44 @@ class _LoginScreenState extends State<LoginScreen> {
           _passwordController.text,
         );
         if (user != null && mounted) {
-          Navigator.pushReplacementNamed(context, "/tela-principal");
+          // Buscar o tipo de usuário no Firestore
+          DocumentSnapshot userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+          if (userDoc.exists) {
+            _userType = userDoc['tipo'];
+          } else {
+            DocumentSnapshot empresaDoc = await FirebaseFirestore.instance
+                .collection('empresas')
+                .doc(user.uid)
+                .get();
+            if (empresaDoc.exists) {
+              _userType = empresaDoc['tipo'];
+            }
+          }
+
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PrincipalScreen(userType: _userType!),
+              ),
+            );
+          }
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao fazer login')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erro ao fazer login')),
+            );
+          }
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro: $e')),
+          );
+        }
       } finally {
         if (mounted) {
           setState(() {
@@ -172,8 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) =>
-                                          CadastroPessoaScreen()),
+                                      builder: (context) => CadastroPessoaScreen()),
                                 );
                               },
                             ),
@@ -188,8 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) =>
-                                          CadastroEmpresaScreen()),
+                                      builder: (context) => CadastroEmpresaScreen()),
                                 );
                               },
                             ),

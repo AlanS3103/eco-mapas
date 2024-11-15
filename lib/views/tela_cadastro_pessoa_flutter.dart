@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth para autenticação
 import 'tela_cadastro_empresa_flutter.dart'; // Importe a tela de cadastro de empresas
@@ -12,12 +13,19 @@ class _CadastroPessoaScreenState extends State<CadastroPessoaScreen> {
   String _nome = '';
   String _email = '';
   String _senha = '';
-  String _confirmSenha = '';
+  String _confirmaSenha = '';
   bool _isLoading = false;
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+
+      if (_senha != _confirmaSenha) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('As senhas não coincidem')),
+        );
+        return;
+      }
 
       setState(() {
         _isLoading = true;
@@ -29,6 +37,15 @@ class _CadastroPessoaScreenState extends State<CadastroPessoaScreen> {
             .createUserWithEmailAndPassword(email: _email, password: _senha);
         print('Usuário registrado: ${userCredential.user!.uid}');
 
+        // Armazenar informações adicionais no Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set({
+          'nome': _nome,
+          'tipo': 'usuario', 
+        });
+        
         // Exibir mensagem de sucesso
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Cadastro realizado com sucesso!')),
@@ -157,26 +174,22 @@ class _CadastroPessoaScreenState extends State<CadastroPessoaScreen> {
                                   : null,
                               onSaved: (value) => _senha = value!,
                             ),
-                            // SizedBox(height: 16),
-                            // TextFormField(
-                            //   decoration: InputDecoration(
-                            //     prefixIcon:
-                            //         Icon(Icons.lock, color: Colors.grey),
-                            //     hintText: 'Confirmar senha',
-                            //     border: OutlineInputBorder(
-                            //       borderRadius: BorderRadius.circular(8),
-                            //     ),
-                            //   ),
-                            //   obscureText: true,
-                            //   validator: (value) {
-                            //     if (value!.isEmpty)
-                            //       return 'Por favor, confirme sua senha';
-                            //     if (value != _senha)
-                            //       return 'As senhas não coincidem';
-                            //     return null;
-                            //   },
-                            //   onSaved: (value) => _confirmSenha = value!,
-                            // ),
+                            SizedBox(height: 16),
+                            TextFormField(
+                              decoration: InputDecoration(
+                                prefixIcon:
+                                    Icon(Icons.lock, color: Colors.grey),
+                                hintText: 'Confirmar senha',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              obscureText: true,
+                              validator: (value) => value!.isEmpty
+                                  ? 'Por favor, confirme sua senha'
+                                  : null,
+                              onSaved: (value) => _confirmaSenha = value!,
+                            ),
                             SizedBox(height: 24),
                             _isLoading
                                 ? CircularProgressIndicator()

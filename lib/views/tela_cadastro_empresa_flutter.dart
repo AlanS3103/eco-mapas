@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eco_mapas/firebase_auth_implementation/firebase_auth_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -14,14 +15,67 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
   String _emailComercial = '';
   String _cnpj = '';
   String _senha = '';
+  String _confirmSenha = '';
+  bool _isLoading = false;
 
-  void _submitForm() {
+  void _submitForm() async{
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      _signUp();
-      // Aqui você pode adicionar a lógica para enviar os dados do formulário
-      print(
-          'Dados enviados: Nome Social: $_nomeSocial, Email Comercial: $_emailComercial, CNPJ: $_cnpj');
+
+      if (_senha != _confirmSenha) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('As senhas não coincidem')),
+        );
+        return;
+      }
+      
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Registrar o usuário no Firebase
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(email: _emailComercial, password: _senha);
+        print('Usuário registrado: ${userCredential.user!.uid}');
+
+        // Armazenar informações adicionais no Firestore
+        await FirebaseFirestore.instance
+            .collection('empresas')
+            .doc(userCredential.user!.uid)
+            .set({
+          'nomeSocial': _nomeSocial,
+          'emailComercial': _emailComercial,
+          'cnpj': _cnpj,
+          'tipo': 'empresa', 
+        });
+
+        // Exibir mensagem de sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Cadastro realizado com sucesso!')),
+        );
+        Navigator.pushReplacementNamed(context, "/tela-principal");
+      } on FirebaseAuthException catch (e) {
+        // Tratar erros de autenticação
+        String message;
+        if (e.code == 'email-already-in-use') {
+          message = 'Este email já está em uso.';
+        } else if (e.code == 'weak-password') {
+          message = 'A senha é muito fraca.';
+        } else {
+          message = 'Erro no cadastro: ${e.message}';
+        }
+
+        // Exibir mensagem de erro
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -30,15 +84,13 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
   TextEditingController _socialnameController = TextEditingController();
   TextEditingController _emailController = TextEditingController();
   TextEditingController _cnpjController = TextEditingController();
-  TextEditingController _usernameController = TextEditingController();
   TextEditingController _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _socialnameController.dispose();
     _emailController.dispose();
     _cnpjController.dispose();
-    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -170,36 +222,38 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
                                   : null,
                               onSaved: (value) => _senha = value!,
                             ),
-                            // SizedBox(height: 16),
-                            // TextFormField(
-                            //   decoration: InputDecoration(
-                            //     prefixIcon:
-                            //         Icon(Icons.lock, color: Colors.grey),
-                            //     hintText: 'Confirmar senha',
-                            //     border: OutlineInputBorder(
-                            //       borderRadius: BorderRadius.circular(8),
-                            //     ),
-                            //   ),
-                            //   obscureText: true,
-                            //   validator: (value) => value!.length < 6
-                            //       ? 'A senha deve ter pelo menos 6 caracteres'
-                            //       : null,
-                            //   onSaved: (value) => _senha = value!,
-                            // ),
-                            SizedBox(height: 24),
-                            ElevatedButton(
-                              child: Text('Cadastrar Empresa'),
-                              onPressed: _submitForm,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                textStyle: TextStyle(fontSize: 18),
-                                shape: RoundedRectangleBorder(
+                            SizedBox(height: 16),
+                            TextFormField(
+                              decoration: InputDecoration(
+                                prefixIcon:
+                                    Icon(Icons.lock, color: Colors.grey),
+                                hintText: 'Confirmar senha',
+                                border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
+                              obscureText: true,
+                              validator: (value) => value!.isEmpty
+                                  ? 'Por favor, confirme sua senha'
+                                  : null,
+                              onSaved: (value) => _confirmSenha = value!,
                             ),
+                            SizedBox(height: 24),
+                            _isLoading
+                                ? CircularProgressIndicator()
+                                : ElevatedButton(
+                                    child: Text('Cadastrar Empresa'),
+                                    onPressed: _submitForm,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.symmetric(vertical: 16),
+                                      textStyle: TextStyle(fontSize: 18),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  ),
                             SizedBox(height: 16),
                             Text(
                               'Junte-se a nós na missão de tornar o mundo mais sustentável!',
@@ -223,19 +277,20 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
     );
   }
 
-  void _signUp() async {
-    String socialname = _socialnameController.text;
-    String email = _emailController.text;
-    String cnpj = _cnpjController.text;
-    String password = _passwordController.text;
+  // void _signUp() async {
+  //   String socialname = _socialnameController.text;
+  //   String email = _emailController.text;
+  //   String cnpj = _cnpjController.text;
+  //   String password = _passwordController.text;
 
-    User? user = await _auth.signUpWithEmailAndPassword(email, password);
+  //   User? user = await _auth.signUpWithEmailAndPassword(email, password);
 
-    if (user != null) {
-      print("User is successfully created");
-      Navigator.pushReplacementNamed(context, "/tela-principal");
-    } else {
-      print("Erro!");
-    }
-  }
+  //   if (user != null) {
+  //     print("User is successfully created");
+  //     Navigator.pushReplacementNamed(context, "/tela-principal");
+  //   } else {
+  //     print("Erro!");
+  //   }
+  // }
+
 }

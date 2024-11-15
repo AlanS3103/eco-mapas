@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class TelaConfiguracoes extends StatefulWidget {
   @override
@@ -6,60 +8,72 @@ class TelaConfiguracoes extends StatefulWidget {
 }
 
 class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
-  bool _notificacoes = true;
-  double _volume = 50;
-  String _tema = 'Claro';
+  bool _isDarkTheme = false;
+  bool _notificationsEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isDarkTheme = prefs.getBool('isDarkTheme') ?? false;
+      _notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('isDarkTheme', _isDarkTheme);
+    prefs.setBool('notificationsEnabled', _notificationsEnabled);
+  }
+
+  Future<void> _clearCache() async {
+    await DefaultCacheManager().emptyCache();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Cache limpo com sucesso!')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Configurações'),
+        backgroundColor: Colors.green,
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
           children: [
             SwitchListTile(
-              title: Text('Notificações'),
-              value: _notificacoes,
+              title: Text('Tema Escuro'),
+              value: _isDarkTheme,
               onChanged: (bool value) {
                 setState(() {
-                  _notificacoes = value;
+                  _isDarkTheme = value;
                 });
+                _saveSettings();
               },
             ),
-            SizedBox(height: 20),
-            Text('Volume'),
-            Slider(
-              value: _volume,
-              min: 0,
-              max: 100,
-              divisions: 10,
-              label: _volume.round().toString(),
-              onChanged: (double value) {
+            SwitchListTile(
+              title: Text('Notificações'),
+              value: _notificationsEnabled,
+              onChanged: (bool value) {
                 setState(() {
-                  _volume = value;
+                  _notificationsEnabled = value;
                 });
+                _saveSettings();
               },
             ),
-            SizedBox(height: 20),
-            Text('Tema'),
-            DropdownButton<String>(
-              value: _tema,
-              onChanged: (String? newValue) {
-                setState(() {
-                  _tema = newValue!;
-                });
+            ListTile(
+              title: Text('Limpar Cache'),
+              onTap: () {
+                _clearCache();
               },
-              items: <String>['Claro', 'Escuro', 'Sistema']
-                  .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
             ),
           ],
         ),

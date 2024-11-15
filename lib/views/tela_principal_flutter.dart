@@ -11,7 +11,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'tela_perfil_flutter.dart';
 
-
 class PrincipalScreen extends StatefulWidget {
   final String userType;
 
@@ -29,7 +28,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   late CollectionPointsService _collectionPointsService;
   bool _isLoading = true;
   bool _isAddingPoint = false;
-  String imageUrl = ''; 
+  String imageUrl = '';
 
   @override
   void initState() {
@@ -69,7 +68,8 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
       _isLoading = true;
     });
     try {
-      collectionPoints = await _collectionPointsService.searchCollectionPointsByName(query);
+      collectionPoints =
+          await _collectionPointsService.searchCollectionPointsByName(query);
       if (collectionPoints.isEmpty) {
         print('Nenhum ponto de coleta encontrado.');
       } else {
@@ -153,9 +153,11 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                 initialZoom: 13.0,
                 minZoom: 3.0,
                 maxZoom: 18.0,
-                onLongPress: widget.userType == 'empresa' ? (tapPosition, point) {
-                  _showAddPointModal(point);
-                } : null,
+                onLongPress: widget.userType == 'empresa'
+                    ? (tapPosition, point) {
+                        _showAddPointModal(point);
+                      }
+                    : null,
               ),
               children: [
                 TileLayer(
@@ -204,11 +206,84 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     String name = '';
     String address = '';
     String description = '';
-    List<String> materialTypes = [];
+    List<String> selectedMaterials = [];
     String ownerName = '';
     String imageUrl = '';
     LatLng location = initialLocation;
     File? selectedImage;
+    final _formKey = GlobalKey<FormState>();
+
+    final List<String> availableMaterials = [
+      'Garrafas PET',
+      'Baterias de carro',
+      'Baterias recarregáveis',
+      'Alumínio',
+      'Pilhas',
+      'Papelão',
+      'Metais',
+      'Lâmpadas fluorescentes',
+      'Telefones celulares',
+      'Óleos de motor',
+      'Roupas e calçados',
+      'Orgânicos',
+      'Papel',
+      'Plástico',
+      'Eletrodomésticos',
+      'Filme de polietileno',
+      'Sacolas de polietileno',
+      'Óleo vegetal',
+      'Vidro',
+      'Termômetros e lâmpadas de baixo consumo de energia',
+      'Pneus'
+    ];
+
+    void _showMaterialSelector() {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Selecione os Materiais'),
+            content: Container(
+              width: double.maxFinite,
+              child: StatefulBuilder(
+                builder: (BuildContext context, StateSetter setState) {
+                  return SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: availableMaterials.map((material) {
+                        return CheckboxListTile(
+                          title: Text(material),
+                          value: selectedMaterials.contains(material),
+                          onChanged: (bool? value) {
+                            setState(() {
+                              if (value == true) {
+                                selectedMaterials.add(material);
+                              } else {
+                                selectedMaterials.remove(material);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                child: Text('Cancelar'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              ElevatedButton(
+                child: Text('Confirmar'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          );
+        },
+      );
+    }
 
     showModalBottomSheet(
       context: context,
@@ -216,100 +291,211 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            return Padding(
+            return Container(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
+                top: 16,
+                left: 16,
+                right: 16,
               ),
-              child: Container(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    TextField(
-                      decoration: InputDecoration(labelText: 'Nome'),
-                      onChanged: (value) => name = value,
-                    ),
-                    TextField(
-                      decoration: InputDecoration(labelText: 'Endereço'),
-                      onChanged: (value) => address = value,
-                    ),
-                    TextField(
-                      decoration: InputDecoration(labelText: 'Descrição'),
-                      onChanged: (value) => description = value,
-                    ),
-                    TextField(
-                      decoration: InputDecoration(
-                          labelText:
-                              'Tipos de Material (separados por vírgula)'),
-                      onChanged: (value) => materialTypes =
-                          value.split(',').map((e) => e.trim()).toList(),
-                    ),
-                    TextField(
-                      decoration:
-                          InputDecoration(labelText: 'Nome do Proprietário'),
-                      onChanged: (value) => ownerName = value,
-                    ),
-                    Row(
-                      children: [
-                        ElevatedButton(
-                          onPressed: () async {
-                            final picker = ImagePicker();
-                            final pickedFile = await picker.pickImage(
-                                source: ImageSource.gallery);
-                            if (pickedFile != null) {
-                              setState(() {
-                                selectedImage = File(pickedFile.path);
-                              });
-                            }
-                          },
-                          child: Text('Selecionar da Galeria'),
+              child: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        'Adicionar Novo Ponto de Coleta',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
-                        ElevatedButton(
-                          onPressed: () async {
-                            final picker = ImagePicker();
-                            final pickedFile = await picker.pickImage(
-                                source: ImageSource.camera);
-                            if (pickedFile != null) {
-                              setState(() {
-                                selectedImage = File(pickedFile.path);
-                              });
-                            }
-                          },
-                          child: Text('Tirar Foto'),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 20),
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Nome',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.business),
                         ),
-                      ],
-                    ),
-                    _isAddingPoint
-                        ? CircularProgressIndicator()
-                        : ElevatedButton(
-                            child: Text('Adicionar Ponto'),
-                            onPressed: () async {
-                              setState(() {
-                                _isAddingPoint = true;
-                              });
-                              if (selectedImage != null) {
-                                imageUrl = await _uploadImage(selectedImage!) ?? '';
-                              }
-                              addNewPoint(CollectionPoint(
-                                id: (collectionPoints.length + 1).toString(),
-                                name: name,
-                                description: description,
-                                address: address,
-                                ownerName: ownerName,
-                                rating: 0,
-                                location: location,
-                                imageUrl: imageUrl.isNotEmpty
-                                    ? imageUrl
-                                    : 'https://example.com/placeholder.jpg',
-                                materialTypes: materialTypes,
-                              ));
-                              setState(() {
-                                _isAddingPoint = false;
-                              });
-                              Navigator.pop(context);
-                            },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, insira um nome';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) => name = value,
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Endereço',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.location_on),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, insira um endereço';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) => address = value,
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Descrição',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.description),
+                        ),
+                        maxLines: 3,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, insira uma descrição';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) => description = value,
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: Icon(Icons.recycling),
+                        label: Text('Selecionar Tipos de Material'),
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: _showMaterialSelector,
+                      ),
+                      if (selectedMaterials.isNotEmpty)
+                        Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Wrap(
+                            spacing: 8,
+                            children: selectedMaterials
+                                .map((material) => Chip(
+                                      label: Text(material),
+                                      onDeleted: () {
+                                        setState(() {
+                                          selectedMaterials.remove(material);
+                                        });
+                                      },
+                                    ))
+                                .toList(),
                           ),
-                  ],
+                        ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        decoration: InputDecoration(
+                          labelText: 'Nome do Proprietário',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.person),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor, insira o nome do proprietário';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) => ownerName = value,
+                      ),
+                      SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: Icon(Icons.photo_library),
+                              label: Text('Galeria'),
+                              onPressed: () async {
+                                final picker = ImagePicker();
+                                final pickedFile = await picker.pickImage(
+                                  source: ImageSource.gallery,
+                                );
+                                if (pickedFile != null) {
+                                  setState(() {
+                                    selectedImage = File(pickedFile.path);
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: Icon(Icons.camera_alt),
+                              label: Text('Câmera'),
+                              onPressed: () async {
+                                final picker = ImagePicker();
+                                final pickedFile = await picker.pickImage(
+                                  source: ImageSource.camera,
+                                );
+                                if (pickedFile != null) {
+                                  setState(() {
+                                    selectedImage = File(pickedFile.path);
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      _isAddingPoint
+                          ? Center(child: CircularProgressIndicator())
+                          : ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              child: Text('Adicionar Ponto'),
+                              onPressed: () async {
+                                if (_formKey.currentState!.validate() &&
+                                    selectedMaterials.isNotEmpty &&
+                                    selectedImage != null) {
+                                  setState(() {
+                                    _isAddingPoint = true;
+                                  });
+                                  imageUrl =
+                                      await _uploadImage(selectedImage!) ?? '';
+                                  addNewPoint(CollectionPoint(
+                                    id: (collectionPoints.length + 1)
+                                        .toString(),
+                                    name: name,
+                                    description: description,
+                                    address: address,
+                                    ownerName: ownerName,
+                                    rating: 0,
+                                    location: location,
+                                    imageUrl: imageUrl.isNotEmpty
+                                        ? imageUrl
+                                        : 'https://example.com/placeholder.jpg',
+                                    materialTypes: selectedMaterials,
+                                  ));
+                                  setState(() {
+                                    _isAddingPoint = false;
+                                  });
+                                  Navigator.pop(context);
+                                } else if (selectedMaterials.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          'Selecione pelo menos um tipo de material'),
+                                    ),
+                                  );
+                                } else if (selectedImage == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          'Selecione uma imagem para o ponto'),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                      SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -365,7 +551,9 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => TelaPerfil(userType: widget.userType)),
+                MaterialPageRoute(
+                    builder: (context) =>
+                        TelaPerfil(userType: widget.userType)),
               );
             },
           ),

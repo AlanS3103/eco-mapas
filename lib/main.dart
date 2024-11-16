@@ -5,14 +5,11 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _initializeFirebase();
-  runApp(EcoMapasApp());
-}
-
-Future<void> _initializeFirebase() async {
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp(
+      name: "eco_mapas",
       options: DefaultFirebaseOptions.currentPlatform,
     );
   }
+  runApp(EcoMapasApp());
 }

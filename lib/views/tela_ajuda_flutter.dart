@@ -59,7 +59,7 @@ class TelaAjuda extends StatelessWidget {
               ),
               SizedBox(height: 8),
               Text(
-                'Se você é uma empresa, pode adicionar novos pontos de coleta pressionando o botão de adicionar localização no mapa. Preencha as informações necessárias e adicione uma foto do ponto de coleta.',
+                'Se você é uma empresa, pode adicionar novos pontos de coleta pressionando e segurando em qualquer localização no mapa. Preencha as informações necessárias, selecione os tipos de materiais e adicione uma foto do ponto de coleta.',
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 16),

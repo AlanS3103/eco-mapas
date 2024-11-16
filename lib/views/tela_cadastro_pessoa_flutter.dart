@@ -139,6 +139,7 @@ class _CadastroPessoaScreenState extends State<CadastroPessoaScreen> {
                             ),
                             SizedBox(height: 16),
                             TextFormField(
+                              keyboardType: TextInputType.emailAddress,
                               decoration: InputDecoration(
                                 prefixIcon:
                                     Icon(Icons.email, color: Colors.grey),
@@ -192,7 +193,7 @@ class _CadastroPessoaScreenState extends State<CadastroPessoaScreen> {
                             ),
                             SizedBox(height: 24),
                             _isLoading
-                                ? CircularProgressIndicator()
+                                ? Center(child: CircularProgressIndicator())
                                 : ElevatedButton(
                                     child: Text('Cadastrar'),
                                     onPressed: _submitForm,

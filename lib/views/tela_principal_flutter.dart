@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../firebase_auth_implementation/firebase_auth_services.dart';
 import '../models/collection_point.dart';
@@ -29,6 +30,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   bool _isLoading = true;
   bool _isAddingPoint = false;
   String imageUrl = '';
+  LatLng? currentLocation;
 
   @override
   void initState() {
@@ -36,6 +38,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     _collectionPointsService =
         CollectionPointsService(); // Inicialize a instância
     _loadCollectionPoints(); // Chama o método para carregar os pontos
+    _getCurrentLocation();
   }
 
   @override
@@ -168,6 +171,23 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                   markers:
                       _buildMarkers(), // Chama o método para construir marcadores
                 ),
+                if (currentLocation != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: currentLocation!,
+                        width: 80.0,
+                        height: 80.0,
+                        child: Container(
+                          child: Icon(
+                            Icons.circle,
+                            color: Colors.blue,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
       floatingActionButton: Column(
@@ -180,15 +200,50 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
           ),
           const SizedBox(height: 16),
           FloatingActionButton(
-            onPressed: () {
-              mapController.move(initialPosition, 13.0);
-            },
+            onPressed: _centerOnUserLocation,
             child: const Icon(Icons.center_focus_strong),
             heroTag: 'center',
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            onPressed: _resetRotation,
+            child: const Icon(Icons.explore),
+            heroTag: 'reset_rotation',
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _getCurrentLocation() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      permission = await Geolocator.requestPermission();
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
+        return;
+      }
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    setState(() {
+      currentLocation = LatLng(position.latitude, position.longitude);
+    });
+    mapController.move(currentLocation!, 13.0);
+  }
+
+  Future<void> _centerOnUserLocation() async {
+    if (currentLocation != null) {
+      mapController.move(currentLocation!, 13.0);
+    } else {
+      await _getCurrentLocation();
+    }
+  }
+
+  void _resetRotation() {
+    mapController.rotate(0);
   }
 
   void addNewPoint(CollectionPoint newPoint) async {

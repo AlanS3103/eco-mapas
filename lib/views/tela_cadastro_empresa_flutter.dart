@@ -3,6 +3,8 @@ import 'package:eco_mapas/firebase_auth_implementation/firebase_auth_services.da
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_masked_text2/flutter_masked_text2.dart';
+
 
 class CadastroEmpresaScreen extends StatefulWidget {
   @override
@@ -17,6 +19,8 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
   String _senha = '';
   String _confirmSenha = '';
   bool _isLoading = false;
+
+  final _cnpjController = MaskedTextController(mask: '00.000.000/0000-00');
 
   void _submitForm() async{
     if (_formKey.currentState!.validate()) {
@@ -83,7 +87,7 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
 
   TextEditingController _socialnameController = TextEditingController();
   TextEditingController _emailController = TextEditingController();
-  TextEditingController _cnpjController = TextEditingController();
+  // TextEditingController _cnpjController = TextEditingController();
   TextEditingController _passwordController = TextEditingController();
 
   @override
@@ -162,6 +166,7 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
                             SizedBox(height: 16),
                             TextFormField(
                               controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
                               decoration: InputDecoration(
                                 prefixIcon:
                                     Icon(Icons.email, color: Colors.grey),
@@ -199,7 +204,7 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
                               validator: (value) {
                                 if (value!.isEmpty)
                                   return 'Por favor, insira o CNPJ';
-                                if (value.length != 14)
+                                if (value.length != 18) // conta os caracteres especiais (. e /)
                                   return 'O CNPJ deve ter 14 dígitos';
                                 return null;
                               },
@@ -240,7 +245,7 @@ class _CadastroEmpresaScreenState extends State<CadastroEmpresaScreen> {
                             ),
                             SizedBox(height: 24),
                             _isLoading
-                                ? CircularProgressIndicator()
+                                ? Center(child: CircularProgressIndicator())
                                 : ElevatedButton(
                                     child: Text('Cadastrar Empresa'),
                                     onPressed: _submitForm,

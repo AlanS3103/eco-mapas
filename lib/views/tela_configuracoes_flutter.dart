@@ -1,3 +1,4 @@
+import 'package:eco_mapas/views/app.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -8,7 +9,7 @@ class TelaConfiguracoes extends StatefulWidget {
 }
 
 class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
-  bool _isDarkTheme = false;
+  String _themeMode = 'light';
   bool _notificationsEnabled = true;
 
   @override
@@ -20,14 +21,14 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _isDarkTheme = prefs.getBool('isDarkTheme') ?? false;
+      _themeMode = prefs.getString('themeMode') ?? 'light';
       _notificationsEnabled = prefs.getBool('notificationsEnabled') ?? true;
     });
   }
 
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('isDarkTheme', _isDarkTheme);
+    prefs.setString('themeMode', _themeMode);
     prefs.setBool('notificationsEnabled', _notificationsEnabled);
   }
 
@@ -49,25 +50,33 @@ class _TelaConfiguracoesState extends State<TelaConfiguracoes> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            SwitchListTile(
-              title: Text('Tema Escuro'),
-              value: _isDarkTheme,
-              onChanged: (bool value) {
-                setState(() {
-                  _isDarkTheme = value;
-                });
-                _saveSettings();
-              },
-            ),
-            SwitchListTile(
-              title: Text('Notificações'),
-              value: _notificationsEnabled,
-              onChanged: (bool value) {
-                setState(() {
-                  _notificationsEnabled = value;
-                });
-                _saveSettings();
-              },
+            ListTile(
+              title: Text('Tema'),
+              trailing: DropdownButton<String>(
+                value: _themeMode,
+                items: [
+                  DropdownMenuItem(
+                    value: 'system',
+                    child: Text('Padrão do Sistema'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'light',
+                    child: Text('Claro'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'dark',
+                    child: Text('Escuro'),
+                  ),
+                ],
+                onChanged: (String? value) {
+                  setState(() {
+                    _themeMode = value!;
+                  });
+                  _saveSettings();
+                    // Notifique o MaterialApp sobre a mudança de tema
+                    EcoMapasApp.of(context)?.setThemeMode(_themeMode);
+                },
+              ),
             ),
             ListTile(
               title: Text('Limpar Cache'),

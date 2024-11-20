@@ -36,4 +36,31 @@ class CollectionPointsService {
         .map((doc) => CollectionPoint.fromFirestore(doc))
         .toList();
   }
+
+  Future<void> deleteCollectionPoint(String id) async {
+    try {
+      await _firestore.collection('collectionPoints').doc(id).delete();
+    } catch (e) {
+      print('Erro ao excluir ponto de coleta: $e');
+      throw e;
+    }
+  }
+
+  Future<void> updateCollectionPoint(CollectionPoint point) async {
+    try {
+      await _firestore.collection('collectionPoints').doc(point.id).update({
+        'name': point.name,
+        'description': point.description,
+        'address': point.address,
+        'ownerName': point.ownerName,
+        'rating': point.rating,
+        'location': GeoPoint(point.location.latitude, point.location.longitude),
+        'imageUrl': point.imageUrl,
+        'materialTypes': point.materialTypes,
+      });
+    } catch (e) {
+      print('Erro ao atualizar ponto de coleta: $e');
+      throw e;
+    }
+  }
 }

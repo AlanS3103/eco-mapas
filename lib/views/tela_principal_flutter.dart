@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -31,6 +33,9 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   bool _isAddingPoint = false;
   String imageUrl = '';
   LatLng? currentLocation;
+  String? companyName;
+  bool _showMaterialError = false;
+  bool _showImageError = false;
 
   @override
   void initState() {
@@ -39,6 +44,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
         CollectionPointsService(); // Inicialize a instância
     _loadCollectionPoints(); // Chama o método para carregar os pontos
     _getCurrentLocation();
+    _getCompanyName();
   }
 
   @override
@@ -62,6 +68,19 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     if (mounted) {
       setState(() {
         _isLoading = false; // Atualize o estado de carregamento
+      });
+    }
+  }
+
+  Future<void> _getCompanyName() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('empresas')
+          .doc(user.uid)
+          .get();
+      setState(() {
+        companyName = userDoc['nomeSocial'];
       });
     }
   }
@@ -257,13 +276,69 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     }
   }
 
-  void _showAddPointModal(LatLng initialLocation) {
-    String name = '';
-    String address = '';
-    String description = '';
+  void _editCollectionPoint(CollectionPoint point) {
+    _showAddPointModal(point.location, point);
+  }
+
+  void _updateCollectionPoint(CollectionPoint point) async {
+    try {
+      await _collectionPointsService.updateCollectionPoint(point);
+      setState(() {
+        // Atualize a lista de pontos de coleta
+        int index = collectionPoints.indexWhere((p) => p.id == point.id);
+        if (index != -1) {
+          collectionPoints[index] = point;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ponto de coleta atualizado com sucesso!')),
+      );
+    } catch (e) {
+      print('Erro ao atualizar ponto de coleta: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao atualizar ponto de coleta')),
+      );
+    }
+  }
+
+  void _deleteCollectionPoint(CollectionPoint point) async {
+    try {
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('collectionPoints')
+          .doc(point.id).get();
+
+      if (doc.exists) {
+        print(
+            'Documento encontrado. Tentando excluir ponto de coleta com ID: ${point.id}');
+        await _collectionPointsService.deleteCollectionPoint(point.id);
+        setState(() {
+          collectionPoints.remove(point);
+        });
+        Navigator.pop(context); // Feche o modal após excluir
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ponto de coleta excluído com sucesso!')),
+        );
+      } else {
+        print('Documento não encontrado. ID: ${point.id}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro: Documento não encontrado')),
+        );
+      }
+    } catch (e) {
+      print('Erro ao excluir ponto de coleta: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao excluir ponto de coleta')),
+      );
+    }
+  }
+
+  void _showAddPointModal(LatLng initialLocation, [CollectionPoint? point]) {
+    String name = point?.name ?? '';
+    String address = point?.address ?? '';
+    String description = point?.description ?? '';
     List<String> selectedMaterials = [];
-    String ownerName = '';
-    String imageUrl = '';
+    String ownerName = point?.ownerName ?? companyName ?? '';
+    String imageUrl = point?.imageUrl ?? '';
     LatLng location = initialLocation;
     File? selectedImage;
     final _formKey = GlobalKey<FormState>();
@@ -343,16 +418,12 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Theme.of(context).dialogBackgroundColor,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
-            return Container(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                top: 16,
-                left: 16,
-                right: 16,
-              ),
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Form(
                 key: _formKey,
                 child: SingleChildScrollView(
@@ -370,6 +441,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                       ),
                       SizedBox(height: 20),
                       TextFormField(
+                        initialValue: name,
                         decoration: InputDecoration(
                           labelText: 'Nome',
                           border: OutlineInputBorder(),
@@ -385,6 +457,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                       ),
                       SizedBox(height: 16),
                       TextFormField(
+                        initialValue: address,
                         decoration: InputDecoration(
                           labelText: 'Endereço',
                           border: OutlineInputBorder(),
@@ -400,6 +473,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                       ),
                       SizedBox(height: 16),
                       TextFormField(
+                        initialValue: description,
                         decoration: InputDecoration(
                           labelText: 'Descrição',
                           border: OutlineInputBorder(),
@@ -421,7 +495,12 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.symmetric(vertical: 12),
                         ),
-                        onPressed: _showMaterialSelector,
+                        onPressed: () {
+                          _showMaterialSelector();
+                          setState(() {
+                            _showMaterialError = selectedMaterials.isEmpty;
+                          });
+                        },
                       ),
                       if (selectedMaterials.isNotEmpty)
                         Padding(
@@ -440,21 +519,14 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                                 .toList(),
                           ),
                         ),
-                      SizedBox(height: 16),
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: 'Nome do Proprietário',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.person),
+                      if (_showMaterialError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            'Selecione pelo menos um tipo de material',
+                            style: TextStyle(color: Colors.red),
+                          ),
                         ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor, insira o nome do proprietário';
-                          }
-                          return null;
-                        },
-                        onChanged: (value) => ownerName = value,
-                      ),
                       SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -471,6 +543,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                                 if (pickedFile != null) {
                                   setState(() {
                                     selectedImage = File(pickedFile.path);
+                                    _showImageError = false;
                                   });
                                 }
                               },
@@ -489,6 +562,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                                 if (pickedFile != null) {
                                   setState(() {
                                     selectedImage = File(pickedFile.path);
+                                    _showImageError = false;
                                   });
                                 }
                               },
@@ -496,59 +570,87 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                           ),
                         ],
                       ),
+                      if (_showImageError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            'Selecione uma imagem para o ponto',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
                       SizedBox(height: 16),
                       _isAddingPoint
                           ? Center(child: CircularProgressIndicator())
                           : ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                              ),
-                              child: Text('Adicionar Ponto'),
-                              onPressed: () async {
-                                if (_formKey.currentState!.validate() &&
-                                    selectedMaterials.isNotEmpty &&
-                                    selectedImage != null) {
-                                  setState(() {
-                                    _isAddingPoint = true;
-                                  });
-                                  imageUrl =
-                                      await _uploadImage(selectedImage!) ?? '';
-                                  addNewPoint(CollectionPoint(
-                                    id: (collectionPoints.length + 1)
-                                        .toString(),
-                                    name: name,
-                                    description: description,
-                                    address: address,
-                                    ownerName: ownerName,
-                                    rating: 0,
-                                    location: location,
-                                    imageUrl: imageUrl.isNotEmpty
-                                        ? imageUrl
-                                        : 'https://example.com/placeholder.jpg',
-                                    materialTypes: selectedMaterials,
-                                  ));
-                                  setState(() {
-                                    _isAddingPoint = false;
-                                  });
-                                  Navigator.pop(context);
-                                } else if (selectedMaterials.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          'Selecione pelo menos um tipo de material'),
-                                    ),
-                                  );
-                                } else if (selectedImage == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                          'Selecione uma imagem para o ponto'),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                      SizedBox(height: 16),
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: Text(point == null
+                            ? 'Adicionar Ponto'
+                            : 'Salvar Alterações'),
+                        onPressed: () async {
+                          if (_formKey.currentState!.validate()) {
+                            setState(() {
+                              _showMaterialError = selectedMaterials.isEmpty;
+                              _showImageError = selectedImage == null;
+                            });
+
+                            if (_showMaterialError || _showImageError) {
+                              return;
+                            }
+
+                            setState(() {
+                              _isAddingPoint = true;
+                            });
+
+                            if (point == null) {
+                              imageUrl =
+                                  await _uploadImage(selectedImage!) ?? '';
+                              addNewPoint(CollectionPoint(
+                                id: (collectionPoints.length + 1).toString(),
+                                name: name,
+                                description: description,
+                                address: address,
+                                ownerName: ownerName,
+                                rating: 0,
+                                location: location,
+                                imageUrl: imageUrl.isNotEmpty
+                                    ? imageUrl
+                                    : 'https://example.com/placeholder.jpg',
+                                materialTypes: selectedMaterials,
+                              ));
+                            } else {
+                              if (selectedImage != null) {
+                                imageUrl =
+                                    await _uploadImage(selectedImage!) ?? '';
+                              }
+                              CollectionPoint updatedPoint = CollectionPoint(
+                                id: point.id,
+                                name: name,
+                                description: description,
+                                address: address,
+                                ownerName: ownerName,
+                                rating: point.rating,
+                                location: location,
+                                imageUrl: imageUrl.isNotEmpty
+                                    ? imageUrl
+                                    : point.imageUrl,
+                                materialTypes: selectedMaterials,
+                              );
+                              await _collectionPointsService
+                                  .updateCollectionPoint(updatedPoint);
+                              setState(() {
+                                int index = collectionPoints.indexWhere(
+                                    (element) => element.id == point.id);
+                                collectionPoints[index] = updatedPoint;
+                                _isAddingPoint = false;
+                              });
+                            }
+
+                            Navigator.pop(context);
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -572,6 +674,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
         style: const TextStyle(color: Colors.white),
         cursorColor: Colors.white,
         decoration: const InputDecoration(
+          icon: Icon(Icons.search, color: Colors.white54),
           hintText: 'Buscar...',
           hintStyle: TextStyle(color: Colors.white54),
           border: InputBorder.none,
@@ -674,6 +777,11 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
   }
 
   void _showLocationDetails(BuildContext context, CollectionPoint point) {
+    User? user = FirebaseAuth.instance.currentUser;
+    bool isOwner = user != null &&
+        companyName ==
+            point.ownerName; // Verifique se o usuário é o proprietário
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -774,6 +882,22 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                                 backgroundColor: Colors.green[100],
                               ))
                           .toList(),
+                    ),
+                    SizedBox(height: 16),
+                    Row(
+                      children: [
+                        if (isOwner) ...[
+                          ElevatedButton(
+                            onPressed: () => _editCollectionPoint(point),
+                            child: Text('Editar'),
+                          ),
+                          SizedBox(width: 8), // Espaçamento entre os botões
+                          ElevatedButton(
+                            onPressed: () => _deleteCollectionPoint(point),
+                            child: Text('Excluir'),
+                          ),
+                        ],
+                      ],
                     ),
                     SizedBox(height: 16),
                     Row(

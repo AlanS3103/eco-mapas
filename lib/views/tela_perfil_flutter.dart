@@ -78,12 +78,6 @@ class TelaPerfil extends StatelessWidget {
                   ),
                 ],
                 SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    
-                  },
-                  child: Text('Editar Perfil'),
-                ),
               ],
             );
           },

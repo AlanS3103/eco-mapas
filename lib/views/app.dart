@@ -30,7 +30,7 @@ class _EcoMapasAppState extends State<EcoMapasApp> {
   Future<void> _loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      String themeMode = prefs.getString('themeMode') ?? 'system';
+      String themeMode = prefs.getString('themeMode') ?? 'light';
       switch (themeMode) {
         case 'system':
           _themeMode = ThemeMode.system;

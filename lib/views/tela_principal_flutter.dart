@@ -270,9 +270,13 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
       await _collectionPointsService.addCollectionPoint(newPoint);
       setState(() {
         collectionPoints.add(newPoint);
+        _isAddingPoint = false;
       });
     } catch (e) {
       print('Erro ao adicionar ponto de coleta: $e');
+      setState(() {
+        _isAddingPoint = false; // Atualize o estado em caso de erro
+      });
     }
   }
 
@@ -280,32 +284,12 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     _showAddPointModal(point.location, point);
   }
 
-  void _updateCollectionPoint(CollectionPoint point) async {
-    try {
-      await _collectionPointsService.updateCollectionPoint(point);
-      setState(() {
-        // Atualize a lista de pontos de coleta
-        int index = collectionPoints.indexWhere((p) => p.id == point.id);
-        if (index != -1) {
-          collectionPoints[index] = point;
-        }
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ponto de coleta atualizado com sucesso!')),
-      );
-    } catch (e) {
-      print('Erro ao atualizar ponto de coleta: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao atualizar ponto de coleta')),
-      );
-    }
-  }
-
   void _deleteCollectionPoint(CollectionPoint point) async {
     try {
       DocumentSnapshot doc = await FirebaseFirestore.instance
           .collection('collectionPoints')
-          .doc(point.id).get();
+          .doc(point.id)
+          .get();
 
       if (doc.exists) {
         print(
@@ -582,75 +566,81 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                       _isAddingPoint
                           ? Center(child: CircularProgressIndicator())
                           : ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: Text(point == null
-                            ? 'Adicionar Ponto'
-                            : 'Salvar Alterações'),
-                        onPressed: () async {
-                          if (_formKey.currentState!.validate()) {
-                            setState(() {
-                              _showMaterialError = selectedMaterials.isEmpty;
-                              _showImageError = selectedImage == null;
-                            });
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              child: Text(point == null
+                                  ? 'Adicionar Ponto'
+                                  : 'Salvar Alterações'),
+                              onPressed: () async {
+                                if (_formKey.currentState!.validate()) {
+                                  setState(() {
+                                    _showMaterialError =
+                                        selectedMaterials.isEmpty;
+                                    _showImageError = selectedImage == null;
+                                  });
 
-                            if (_showMaterialError || _showImageError) {
-                              return;
-                            }
+                                  if (_showMaterialError || _showImageError) {
+                                    return;
+                                  }
 
-                            setState(() {
-                              _isAddingPoint = true;
-                            });
+                                  setState(() {
+                                    _isAddingPoint = true;
+                                  });
 
-                            if (point == null) {
-                              imageUrl =
-                                  await _uploadImage(selectedImage!) ?? '';
-                              addNewPoint(CollectionPoint(
-                                id: (collectionPoints.length + 1).toString(),
-                                name: name,
-                                description: description,
-                                address: address,
-                                ownerName: ownerName,
-                                rating: 0,
-                                location: location,
-                                imageUrl: imageUrl.isNotEmpty
-                                    ? imageUrl
-                                    : 'https://example.com/placeholder.jpg',
-                                materialTypes: selectedMaterials,
-                              ));
-                            } else {
-                              if (selectedImage != null) {
-                                imageUrl =
-                                    await _uploadImage(selectedImage!) ?? '';
-                              }
-                              CollectionPoint updatedPoint = CollectionPoint(
-                                id: point.id,
-                                name: name,
-                                description: description,
-                                address: address,
-                                ownerName: ownerName,
-                                rating: point.rating,
-                                location: location,
-                                imageUrl: imageUrl.isNotEmpty
-                                    ? imageUrl
-                                    : point.imageUrl,
-                                materialTypes: selectedMaterials,
-                              );
-                              await _collectionPointsService
-                                  .updateCollectionPoint(updatedPoint);
-                              setState(() {
-                                int index = collectionPoints.indexWhere(
-                                    (element) => element.id == point.id);
-                                collectionPoints[index] = updatedPoint;
-                                _isAddingPoint = false;
-                              });
-                            }
+                                  if (point == null) {
+                                    imageUrl =
+                                        await _uploadImage(selectedImage!) ??
+                                            '';
+                                    addNewPoint(CollectionPoint(
+                                      id: (collectionPoints.length + 1)
+                                          .toString(),
+                                      name: name,
+                                      description: description,
+                                      address: address,
+                                      ownerName: ownerName,
+                                      rating: 0,
+                                      location: location,
+                                      imageUrl: imageUrl.isNotEmpty
+                                          ? imageUrl
+                                          : 'https://example.com/placeholder.jpg',
+                                      materialTypes: selectedMaterials,
+                                    ));
+                                  } else {
+                                    if (selectedImage != null) {
+                                      imageUrl =
+                                          await _uploadImage(selectedImage!) ??
+                                              '';
+                                    }
+                                    CollectionPoint updatedPoint =
+                                        CollectionPoint(
+                                      id: point.id,
+                                      name: name,
+                                      description: description,
+                                      address: address,
+                                      ownerName: ownerName,
+                                      rating: point.rating,
+                                      location: location,
+                                      imageUrl: imageUrl.isNotEmpty
+                                          ? imageUrl
+                                          : point.imageUrl,
+                                      materialTypes: selectedMaterials,
+                                    );
+                                    await _collectionPointsService
+                                        .updateCollectionPoint(updatedPoint);
+                                    setState(() {
+                                      int index = collectionPoints.indexWhere(
+                                          (element) => element.id == point.id);
+                                      collectionPoints[index] = updatedPoint;
+                                      _isAddingPoint = false;
+                                    });
+                                    _refreshMap();
+                                  }
 
-                            Navigator.pop(context);
-                          }
-                        },
-                      ),
+                                  Navigator.pop(context);
+                                }
+                              },
+                            ),
                     ],
                   ),
                 ),

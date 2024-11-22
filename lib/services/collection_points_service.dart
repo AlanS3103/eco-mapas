@@ -13,8 +13,9 @@ class CollectionPointsService {
   }
 
   Future<void> addCollectionPoint(CollectionPoint point) async {
-    await _firestore.collection('collectionPoints').add({
-      'id': point.id,
+    DocumentReference docRef =
+        await _firestore.collection('collectionPoints').add({
+      //'id': docRef.id,
       'name': point.name,
       'description': point.description,
       'address': point.address,
@@ -24,9 +25,13 @@ class CollectionPointsService {
       'imageUrl': point.imageUrl,
       'materialTypes': point.materialTypes,
     });
+    // Atualize o ID do ponto de coleta com o ID gerado automaticamente
+    await docRef.update({'id': docRef.id});
+    point.id = docRef.id;
   }
 
-  Future<List<CollectionPoint>> searchCollectionPointsByName(String name) async {
+  Future<List<CollectionPoint>> searchCollectionPointsByName(
+      String name) async {
     QuerySnapshot snapshot = await _firestore
         .collection('collectionPoints')
         .where('name', isGreaterThanOrEqualTo: name)
@@ -47,7 +52,10 @@ class CollectionPointsService {
   }
 
   Future<void> updateCollectionPoint(CollectionPoint point) async {
-    try {
+  try {
+    DocumentSnapshot doc = await _firestore.collection('collectionPoints').doc(point.id).get();
+
+    if (doc.exists) {
       await _firestore.collection('collectionPoints').doc(point.id).update({
         'name': point.name,
         'description': point.description,
@@ -58,9 +66,13 @@ class CollectionPointsService {
         'imageUrl': point.imageUrl,
         'materialTypes': point.materialTypes,
       });
-    } catch (e) {
-      print('Erro ao atualizar ponto de coleta: $e');
-      throw e;
+    } else {
+      print('Documento não encontrado. ID: ${point.id}');
+      throw Exception('Documento não encontrado');
     }
+  } catch (e) {
+    print('Erro ao atualizar ponto de coleta: $e');
+    throw e;
   }
+}
 }

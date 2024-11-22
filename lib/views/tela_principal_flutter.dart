@@ -270,9 +270,13 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
       await _collectionPointsService.addCollectionPoint(newPoint);
       setState(() {
         collectionPoints.add(newPoint);
+        _isAddingPoint = false;
       });
     } catch (e) {
       print('Erro ao adicionar ponto de coleta: $e');
+      setState(() {
+        _isAddingPoint = false; // Atualize o estado em caso de erro
+      });
     }
   }
 
@@ -280,32 +284,12 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     _showAddPointModal(point.location, point);
   }
 
-  void _updateCollectionPoint(CollectionPoint point) async {
-    try {
-      await _collectionPointsService.updateCollectionPoint(point);
-      setState(() {
-        // Atualize a lista de pontos de coleta
-        int index = collectionPoints.indexWhere((p) => p.id == point.id);
-        if (index != -1) {
-          collectionPoints[index] = point;
-        }
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ponto de coleta atualizado com sucesso!')),
-      );
-    } catch (e) {
-      print('Erro ao atualizar ponto de coleta: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao atualizar ponto de coleta')),
-      );
-    }
-  }
-
   void _deleteCollectionPoint(CollectionPoint point) async {
     try {
       DocumentSnapshot doc = await FirebaseFirestore.instance
           .collection('collectionPoints')
-          .doc(point.id).get();
+          .doc(point.id)
+          .get();
 
       if (doc.exists) {
         print(
@@ -423,235 +407,253 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        'Adicionar Novo Ponto de Coleta',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 20),
-                      TextFormField(
-                        initialValue: name,
-                        decoration: InputDecoration(
-                          labelText: 'Nome',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.business),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor, insira um nome';
-                          }
-                          return null;
-                        },
-                        onChanged: (value) => name = value,
-                      ),
-                      SizedBox(height: 16),
-                      TextFormField(
-                        initialValue: address,
-                        decoration: InputDecoration(
-                          labelText: 'Endereço',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.location_on),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor, insira um endereço';
-                          }
-                          return null;
-                        },
-                        onChanged: (value) => address = value,
-                      ),
-                      SizedBox(height: 16),
-                      TextFormField(
-                        initialValue: description,
-                        decoration: InputDecoration(
-                          labelText: 'Descrição',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.description),
-                        ),
-                        maxLines: 3,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor, insira uma descrição';
-                          }
-                          return null;
-                        },
-                        onChanged: (value) => description = value,
-                      ),
-                      SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        icon: Icon(Icons.recycling),
-                        label: Text('Selecionar Tipos de Material'),
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        onPressed: () {
-                          _showMaterialSelector();
-                          setState(() {
-                            _showMaterialError = selectedMaterials.isEmpty;
-                          });
-                        },
-                      ),
-                      if (selectedMaterials.isNotEmpty)
-                        Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: Wrap(
-                            spacing: 8,
-                            children: selectedMaterials
-                                .map((material) => Chip(
-                                      label: Text(material),
-                                      onDeleted: () {
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Form(
+                    key: _formKey,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text(
+                            'Adicionar Novo Ponto de Coleta',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 20),
+                          TextFormField(
+                            initialValue: name,
+                            decoration: InputDecoration(
+                              labelText: 'Nome',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.business),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Por favor, insira um nome';
+                              }
+                              return null;
+                            },
+                            onChanged: (value) => name = value,
+                          ),
+                          SizedBox(height: 16),
+                          TextFormField(
+                            initialValue: address,
+                            decoration: InputDecoration(
+                              labelText: 'Endereço',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.location_on),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Por favor, insira um endereço';
+                              }
+                              return null;
+                            },
+                            onChanged: (value) => address = value,
+                          ),
+                          SizedBox(height: 16),
+                          TextFormField(
+                            initialValue: description,
+                            decoration: InputDecoration(
+                              labelText: 'Descrição',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.description),
+                            ),
+                            maxLines: 3,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Por favor, insira uma descrição';
+                              }
+                              return null;
+                            },
+                            onChanged: (value) => description = value,
+                          ),
+                          SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            icon: Icon(Icons.recycling),
+                            label: Text('Selecionar Tipos de Material'),
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: () {
+                              _showMaterialSelector();
+                              setState(() {
+                                _showMaterialError = selectedMaterials.isEmpty;
+                              });
+                            },
+                          ),
+                          if (selectedMaterials.isNotEmpty)
+                            Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Wrap(
+                                spacing: 8,
+                                children: selectedMaterials
+                                    .map((material) => Chip(
+                                          label: Text(material),
+                                          onDeleted: () {
+                                            setState(() {
+                                              selectedMaterials
+                                                  .remove(material);
+                                            });
+                                          },
+                                        ))
+                                    .toList(),
+                              ),
+                            ),
+                          if (_showMaterialError)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                'Selecione pelo menos um tipo de material',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  icon: Icon(Icons.photo_library),
+                                  label: Text('Galeria'),
+                                  onPressed: () async {
+                                    final picker = ImagePicker();
+                                    final pickedFile = await picker.pickImage(
+                                      source: ImageSource.gallery,
+                                    );
+                                    if (pickedFile != null) {
+                                      setState(() {
+                                        selectedImage = File(pickedFile.path);
+                                        _showImageError = false;
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  icon: Icon(Icons.camera_alt),
+                                  label: Text('Câmera'),
+                                  onPressed: () async {
+                                    final picker = ImagePicker();
+                                    final pickedFile = await picker.pickImage(
+                                      source: ImageSource.camera,
+                                    );
+                                    if (pickedFile != null) {
+                                      setState(() {
+                                        selectedImage = File(pickedFile.path);
+                                        _showImageError = false;
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_showImageError)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                'Selecione uma imagem para o ponto',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          SizedBox(height: 16),
+                          _isAddingPoint
+                              ? Center(child: CircularProgressIndicator())
+                              : ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                  ),
+                                  child: Text(point == null
+                                      ? 'Adicionar Ponto'
+                                      : 'Salvar Alterações'),
+                                  onPressed: () async {
+                                    if (_formKey.currentState!.validate()) {
+                                      setState(() {
+                                        _showMaterialError =
+                                            selectedMaterials.isEmpty;
+                                        _showImageError = selectedImage == null;
+                                      });
+
+                                      if (_showMaterialError ||
+                                          _showImageError) {
+                                        return;
+                                      }
+
+                                      setState(() {
+                                        _isAddingPoint = true;
+                                      });
+
+                                      if (point == null) {
+                                        imageUrl = await _uploadImage(
+                                                selectedImage!) ??
+                                            '';
+                                        addNewPoint(CollectionPoint(
+                                          id: (collectionPoints.length + 1)
+                                              .toString(),
+                                          name: name,
+                                          description: description,
+                                          address: address,
+                                          ownerName: ownerName,
+                                          rating: 0,
+                                          location: location,
+                                          imageUrl: imageUrl.isNotEmpty
+                                              ? imageUrl
+                                              : 'https://example.com/placeholder.jpg',
+                                          materialTypes: selectedMaterials,
+                                        ));
+                                      } else {
+                                        if (selectedImage != null) {
+                                          imageUrl = await _uploadImage(
+                                                  selectedImage!) ??
+                                              '';
+                                        }
+                                        CollectionPoint updatedPoint =
+                                            CollectionPoint(
+                                          id: point.id,
+                                          name: name,
+                                          description: description,
+                                          address: address,
+                                          ownerName: ownerName,
+                                          rating: point.rating,
+                                          location: location,
+                                          imageUrl: imageUrl.isNotEmpty
+                                              ? imageUrl
+                                              : point.imageUrl,
+                                          materialTypes: selectedMaterials,
+                                        );
+                                        await _collectionPointsService
+                                            .updateCollectionPoint(
+                                                updatedPoint);
                                         setState(() {
-                                          selectedMaterials.remove(material);
+                                          int index = collectionPoints
+                                              .indexWhere((element) =>
+                                                  element.id == point.id);
+                                          collectionPoints[index] =
+                                              updatedPoint;
+                                          _isAddingPoint = false;
                                         });
-                                      },
-                                    ))
-                                .toList(),
-                          ),
-                        ),
-                      if (_showMaterialError)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            'Selecione pelo menos um tipo de material',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              icon: Icon(Icons.photo_library),
-                              label: Text('Galeria'),
-                              onPressed: () async {
-                                final picker = ImagePicker();
-                                final pickedFile = await picker.pickImage(
-                                  source: ImageSource.gallery,
-                                );
-                                if (pickedFile != null) {
-                                  setState(() {
-                                    selectedImage = File(pickedFile.path);
-                                    _showImageError = false;
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                          SizedBox(width: 16),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              icon: Icon(Icons.camera_alt),
-                              label: Text('Câmera'),
-                              onPressed: () async {
-                                final picker = ImagePicker();
-                                final pickedFile = await picker.pickImage(
-                                  source: ImageSource.camera,
-                                );
-                                if (pickedFile != null) {
-                                  setState(() {
-                                    selectedImage = File(pickedFile.path);
-                                    _showImageError = false;
-                                  });
-                                }
-                              },
-                            ),
-                          ),
+                                        _refreshMap();
+                                      }
+
+                                      Navigator.pop(context);
+                                    }
+                                  },
+                                ),
                         ],
                       ),
-                      if (_showImageError)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            'Selecione uma imagem para o ponto',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      SizedBox(height: 16),
-                      _isAddingPoint
-                          ? Center(child: CircularProgressIndicator())
-                          : ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: Text(point == null
-                            ? 'Adicionar Ponto'
-                            : 'Salvar Alterações'),
-                        onPressed: () async {
-                          if (_formKey.currentState!.validate()) {
-                            setState(() {
-                              _showMaterialError = selectedMaterials.isEmpty;
-                              _showImageError = selectedImage == null;
-                            });
-
-                            if (_showMaterialError || _showImageError) {
-                              return;
-                            }
-
-                            setState(() {
-                              _isAddingPoint = true;
-                            });
-
-                            if (point == null) {
-                              imageUrl =
-                                  await _uploadImage(selectedImage!) ?? '';
-                              addNewPoint(CollectionPoint(
-                                id: (collectionPoints.length + 1).toString(),
-                                name: name,
-                                description: description,
-                                address: address,
-                                ownerName: ownerName,
-                                rating: 0,
-                                location: location,
-                                imageUrl: imageUrl.isNotEmpty
-                                    ? imageUrl
-                                    : 'https://example.com/placeholder.jpg',
-                                materialTypes: selectedMaterials,
-                              ));
-                            } else {
-                              if (selectedImage != null) {
-                                imageUrl =
-                                    await _uploadImage(selectedImage!) ?? '';
-                              }
-                              CollectionPoint updatedPoint = CollectionPoint(
-                                id: point.id,
-                                name: name,
-                                description: description,
-                                address: address,
-                                ownerName: ownerName,
-                                rating: point.rating,
-                                location: location,
-                                imageUrl: imageUrl.isNotEmpty
-                                    ? imageUrl
-                                    : point.imageUrl,
-                                materialTypes: selectedMaterials,
-                              );
-                              await _collectionPointsService
-                                  .updateCollectionPoint(updatedPoint);
-                              setState(() {
-                                int index = collectionPoints.indexWhere(
-                                    (element) => element.id == point.id);
-                                collectionPoints[index] = updatedPoint;
-                                _isAddingPoint = false;
-                              });
-                            }
-
-                            Navigator.pop(context);
-                          }
-                        },
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),

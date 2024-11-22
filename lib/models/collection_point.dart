@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart';
 
 class CollectionPoint {
-  final String id;
+  String id;
   final String name;
   final String description;
   final String address;
@@ -28,7 +28,7 @@ class CollectionPoint {
     Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
     GeoPoint geoPoint = data['location'];
     return CollectionPoint(
-      id: data['id'],
+      id: snapshot.id,
       name: data['name'],
       description: data['description'],
       address: data['address'],
